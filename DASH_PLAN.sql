@@ -1,4 +1,3 @@
--- Ajax callback prcoess called DASH_PLAN
 DECLARE
   v_plan    CLOB;
   v_title   VARCHAR2(200);
