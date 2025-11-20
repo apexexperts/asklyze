@@ -1,4 +1,3 @@
---Function and Global Variable Declaration
 (function () {
   const ITEM_Q           = "P3_QUESTION";
   const ITEM_PLAN_JSON   = "P3_PLAN_JSON";
@@ -764,107 +763,173 @@ async function renderHeaderAndOverview() {
     }
   }
 }
-  window.runDashboardBuilder = async function () {
-    apex.message.clearErrors();
-    ensureProgress();
-    toggleQuestionArea(false);
-    sectionReady.overview = false;
-    sectionReady.kpis = false;
-    sectionReady.charts = false;
-    ["#mqOverview", "#mqKpiSection", "#mq_chart"].forEach(id => {
-      const el = sel(id);
-      if (el) {
-        el.style.display = "none";
-        delete el.dataset.mqShown;
-      }
-    });
-    showBuildPlaceholders();
-    try {
-      setStepActive("plan", "Planning layout and blocks…");
-      const rawPlan = await callProcess("DASH_PLAN", {
-        pageItems: [ITEM_Q, "P0_DATABASE_SCHEMA"],
-        dataType: "text"
-      });
-      let planRes = rawPlan;
-      if (typeof rawPlan === "string") {
-        try {
-          planRes = JSON.parse(rawPlan);
-        } catch (err) {
-          throw new Error("Invalid JSON from server (PLAN).");
-        }
-      }
-      if (!planRes || planRes.ok !== true) {
-        throw new Error((planRes && (planRes.error || planRes.title)) || "Planner failed.");
-      }
-      if (planRes.plan) apex.item(ITEM_PLAN_JSON).setValue(planRes.plan);
-    } catch (e) {
-      apex.message.showErrors([{ type: "error", location: "page", message: e.message }]);
-      finishProgress(false, "Failed at Planning");
-      removeBuildPlaceholders();
-      toggleQuestionArea(true);
-      return;
-    }
-    let dashId = null;
-    try {
-      setStepActive("create", "Creating dashboard and widgets…");
-      const createRes = await callProcess("DASH_CREATE_BLOCKS", {
-        pageItems: [ITEM_PLAN_JSON, ITEM_Q]
-      });
-      if (!createRes || createRes.ok !== true) {
-        throw new Error((createRes && createRes.error) || "Create failed.");
-      }
-      dashId = createRes.dashboardId || apex.item(ITEM_DASH_ID).getValue();
-      if (!dashId) throw new Error("No dashboardId returned.");
-      apex.item(ITEM_DASH_ID).setValue(String(dashId));
-    } catch (e) {
-      apex.message.showErrors([{ type: "error", location: "page", message: e.message }]);
-      finishProgress(false, "Failed at Creating");
-      removeBuildPlaceholders();
-      toggleQuestionArea(true);
-      return;
-    }
-    try {
-      setStepActive("overview", "AI generating overview…");
-      await callProcess("DASH_GEN_OVERVIEW", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA"] });
-      sectionReady.overview = true;
-    } catch (e) {
-      console.warn("OVERVIEW warn", e);
-    }
-    try {
-      setStepActive("kpis", "AI generating KPI metrics…");
-      await callProcess("DASH_GEN_KPIS", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA"] });
-      sectionReady.kpis = true;
-    } catch (e) {
-      console.warn("KPIS warn", e);
-    }
-    try {
-      setStepActive("chart", "AI creating chart with insights…");
-      await callProcess("DASH_GEN_CHART", {
-        pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA", ITEM_Q]
-      });
-      sectionReady.charts = true;
-    } catch (e) {
-      console.warn("CHART warn", e);
-    }
-    try {
-      setStepActive("final", "Finalizing dashboard…");
-      await callProcess("DASH_FINALIZE", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA"] });
-    } catch (e) {
-      console.warn("FINAL warn", e);
-    }
-    const placeholder = sel("#mqPlaceholder");
-    if (placeholder) placeholder.remove();
+// FIXED VERSION of runDashboardBuilder function
+// Replace the existing window.runDashboardBuilder function (starting at line 767) with this:
 
-    setStepActive("final", "Rendering AI-generated content…");
-    sectionReady.overview = true;
-    sectionReady.kpis = true;
-    sectionReady.charts = true;
-    await renderHeaderAndOverview();
+window.runDashboardBuilder = async function () {
+  apex.message.clearErrors();
+  
+  // IMPORTANT FIX: Get the question value from the input element
+  const questionInput = apex.item(ITEM_Q);
+  let questionValue = "";
+  
+  // Try multiple ways to get the question
+  if (questionInput && questionInput.getValue) {
+    questionValue = questionInput.getValue();
+  } else {
+    // Fallback to direct DOM access
+    const inputEl = document.getElementById(ITEM_Q);
+    if (inputEl) {
+      questionValue = inputEl.value;
+    }
+  }
+  
+  // Validate that we have a question
+  if (!questionValue || questionValue.trim() === "") {
+    apex.message.showErrors([{ 
+      type: "error", 
+      location: "page", 
+      message: "Please enter a question before generating dashboard" 
+    }]);
+    return;
+  }
+  
+  // CRITICAL: Set the question value in session state before any process calls
+  apex.item(ITEM_Q).setValue(questionValue);
+  
+  // Log for debugging
+  console.log("Dashboard Builder - Question value:", questionValue);
+  console.log("Dashboard Builder - P3_QUESTION set to:", apex.item(ITEM_Q).getValue());
+  
+  ensureProgress();
+  toggleQuestionArea(false);
+  sectionReady.overview = false;
+  sectionReady.kpis = false;
+  sectionReady.charts = false;
+  ["#mqOverview", "#mqKpiSection", "#mq_chart"].forEach(id => {
+    const el = sel(id);
+    if (el) {
+      el.style.display = "none";
+      delete el.dataset.mqShown;
+    }
+  });
+  showBuildPlaceholders();
+  
+  try {
+    setStepActive("plan", "Planning layout and blocks…");
+    
+    // ENSURE question is in session before calling DASH_PLAN
+    await apex.server.plugin(null, {
+      pageItems: ITEM_Q
+    });
+    
+    const rawPlan = await callProcess("DASH_PLAN", {
+      pageItems: [ITEM_Q, "P0_DATABASE_SCHEMA"],
+      dataType: "text"
+    });
+    let planRes = rawPlan;
+    if (typeof rawPlan === "string") {
+      try {
+        planRes = JSON.parse(rawPlan);
+      } catch (err) {
+        throw new Error("Invalid JSON from server (PLAN).");
+      }
+    }
+    if (!planRes || planRes.ok !== true) {
+      throw new Error((planRes && (planRes.error || planRes.title)) || "Planner failed.");
+    }
+    if (planRes.plan) apex.item(ITEM_PLAN_JSON).setValue(planRes.plan);
+  } catch (e) {
+    apex.message.showErrors([{ type: "error", location: "page", message: e.message }]);
+    finishProgress(false, "Failed at Planning");
     removeBuildPlaceholders();
-    finishProgress(true, "Dashboard ready");
-    apex.message.showPageSuccess("Dashboard ready with AI-generated content.");
     toggleQuestionArea(true);
-  };
+    return;
+  }
+  
+  let dashId = null;
+  try {
+    setStepActive("create", "Creating dashboard and widgets…");
+    
+    // ENSURE question is still in session before calling DASH_CREATE_BLOCKS
+    // This is critical - we're explicitly including P3_QUESTION in pageItems
+    const createRes = await callProcess("DASH_CREATE_BLOCKS", {
+      pageItems: [ITEM_PLAN_JSON, ITEM_Q, "P0_DATABASE_SCHEMA"],
+      x01: questionValue  // Also pass question as parameter x01 as backup
+    });
+    
+    console.log("DASH_CREATE_BLOCKS response:", createRes);
+    
+    if (!createRes || createRes.ok !== true) {
+      throw new Error((createRes && createRes.error) || "Create failed.");
+    }
+    dashId = createRes.dashboardId || apex.item(ITEM_DASH_ID).getValue();
+    if (!dashId) throw new Error("No dashboardId returned.");
+    apex.item(ITEM_DASH_ID).setValue(String(dashId));
+    
+    // Log what was saved
+    console.log("Dashboard created with:", {
+      id: dashId,
+      title: createRes.title,
+      question: createRes.question,
+      schema: createRes.schema
+    });
+    
+  } catch (e) {
+    apex.message.showErrors([{ type: "error", location: "page", message: e.message }]);
+    finishProgress(false, "Failed at Creating");
+    removeBuildPlaceholders();
+    toggleQuestionArea(true);
+    return;
+  }
+  
+  // Continue with the rest of the function (overview, kpis, charts, etc.)
+  try {
+    setStepActive("overview", "AI generating overview…");
+    await callProcess("DASH_GEN_OVERVIEW", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA", ITEM_Q] });
+    sectionReady.overview = true;
+  } catch (e) {
+    console.warn("OVERVIEW warn", e);
+  }
+  
+  try {
+    setStepActive("kpis", "AI generating KPI metrics…");
+    await callProcess("DASH_GEN_KPIS", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA", ITEM_Q] });
+    sectionReady.kpis = true;
+  } catch (e) {
+    console.warn("KPIS warn", e);
+  }
+  
+  try {
+    setStepActive("chart", "AI creating chart with insights…");
+    await callProcess("DASH_GEN_CHART", {
+      pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA", ITEM_Q]
+    });
+    sectionReady.charts = true;
+  } catch (e) {
+    console.warn("CHART warn", e);
+  }
+  
+  try {
+    setStepActive("final", "Finalizing dashboard…");
+    await callProcess("DASH_FINALIZE", { pageItems: [ITEM_DASH_ID, "P0_DATABASE_SCHEMA"] });
+  } catch (e) {
+    console.warn("FINAL warn", e);
+  }
+  
+  const placeholder = sel("#mqPlaceholder");
+  if (placeholder) placeholder.remove();
+
+  setStepActive("final", "Rendering AI-generated content…");
+  sectionReady.overview = true;
+  sectionReady.kpis = true;
+  sectionReady.charts = true;
+  await renderHeaderAndOverview();
+  removeBuildPlaceholders();
+  finishProgress(true, "Dashboard ready");
+  apex.message.showPageSuccess("Dashboard ready with AI-generated content.");
+  toggleQuestionArea(true);
+};
   document.addEventListener("DOMContentLoaded", async () => {
     ensureQuestionActionButton();
     const dashId = apex.item(ITEM_DASH_ID).getValue();
@@ -1007,26 +1072,35 @@ window.renderChartSection = function (meta) {
     document.getElementById("mq_chart") ||
     document.querySelector("#mq_dash .mq-chart-section") ||
     document.getElementById("mq_dash");
+
   if (!container) {
     console.warn("Chart container not found (mq_chart / mq_dash).");
     return;
   }
-  destroyExistingCharts();
-  container.innerHTML = "";
+
+  // Clean up previous charts
+  if (typeof destroyExistingCharts === "function") {
+    destroyExistingCharts();
+  } else {
+    container.innerHTML = "";
+  }
+
   if (typeof ApexCharts === "undefined") {
     var msg = document.createElement("p");
     msg.textContent = "Chart library is not available.";
     container.appendChild(msg);
     return;
   }
-  var chartDataRaw =
-    meta.chartData || meta.chart_data || meta.charts || null;
+
+  var chartDataRaw = meta.chartData || meta.chart_data || meta.charts || null;
+
   if (!chartDataRaw) {
     var noCfg = document.createElement("p");
     noCfg.textContent = "No chart configuration returned from AI.";
     container.appendChild(noCfg);
     return;
   }
+
   var chartConfig;
   try {
     if (typeof chartDataRaw === "string") {
@@ -1041,23 +1115,28 @@ window.renderChartSection = function (meta) {
     container.appendChild(invalid);
     return;
   }
+
   var chartsArray = [];
   if (Array.isArray(chartConfig)) {
     chartsArray = chartConfig;
   } else if (Array.isArray(chartConfig.charts)) {
     chartsArray = chartConfig.charts;
   }
+
   if (!chartsArray.length) {
     var empty = document.createElement("p");
     empty.textContent = "No chart data available.";
     container.appendChild(empty);
     return;
   }
+
   chartsArray = chartsArray.slice(0, 6);
-  var header = document.createElement("h3");
-//   header.textContent = "Chart";
-  header.className = "mq-section-title";
-  container.appendChild(header);
+
+  // Header is optional based on your design, keeping it simple
+  // var header = document.createElement("h3");
+  // header.className = "mq-section-title";
+  // container.appendChild(header);
+
   var grid = document.createElement("div");
   grid.className = "mq-chart-grid";
   grid.style.display = "grid";
@@ -1065,387 +1144,349 @@ window.renderChartSection = function (meta) {
   grid.style.gap = "16px";
   grid.style.marginTop = "8px";
   container.appendChild(grid);
-  chartsArray.forEach(function (chart, idx) {
 
+  // ---------------------------------------------------------
+  // HELPER FUNCTIONS
+  // ---------------------------------------------------------
+
+  // Helper: Render Leaflet Map (From Original Code)
+  function renderLeafletMap(container, points) {
+    if (!points || !points.length) {
+      container.innerHTML = '<div class="mq-chart-error">No valid coordinates for map.</div>';
+      return;
+    }
+    container.style.height = "320px";
+    container.style.position = "relative";
+    
+    // Ensure ensureLeaflet exists or handle it
+    var promise = (typeof ensureLeaflet === "function") ? ensureLeaflet() : Promise.resolve();
+
+    promise.then(function() {
+      if (!window.L || typeof window.L.map !== "function") {
+          container.innerHTML = '<div class="mq-chart-error">Map library missing.</div>';
+          return;
+      }
+      container.innerHTML = "";
+      var map = L.map(container);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      var bounds = [];
+      points.forEach(function(pt) {
+         if (Number.isFinite(pt.lat) && Number.isFinite(pt.lon)) {
+             bounds.push([pt.lat, pt.lon]);
+             var popupHtml = '<strong>' + escapeHTML(pt.label) + '</strong>' + 
+                             (pt.value != null ? '<br/>Value: ' + escapeHTML(pt.value) : "");
+             L.circleMarker([pt.lat, pt.lon], {
+               radius: 6, fillColor: "#2563eb", color: "#1d4ed8", weight: 1, fillOpacity: 0.8
+             }).addTo(map).bindPopup(popupHtml);
+         }
+      });
+
+      if (bounds.length) {
+         if (bounds.length === 1) map.setView(bounds[0], 6);
+         else map.fitBounds(bounds, { padding: [20, 20] });
+      }
+      if (typeof mqChartInstances !== "undefined") mqChartInstances.push(map);
+    }).catch(function() {
+      container.innerHTML = '<div class="mq-chart-error">Map loading failed.</div>';
+    });
+  }
+
+  // Helper: Render ApexChart (From Original Code - Robust version)
+  function renderApexChart(container, kind, labels, seriesOrData, chartCfg, idx, isFormattedSeries) {
+    var type;
+    if (kind === "line") type = "line";
+    else if (kind === "area") type = "area";
+    else if (kind === "pie") type = "pie";
+    else if (kind === "donut") type = "donut";
+    else if (kind === "radialbar" || kind === "radial_bar") type = "radialBar";
+    else type = "bar";
+
+    var isPieLike = (type === "pie" || type === "donut" || type === "radialBar");
+    var finalSeries;
+    
+    // Function to safely convert to numbers if defined globally, else identity
+    var toNumArr = (typeof toNumberArray === "function") ? toNumberArray : function(a){ return a; };
+
+    if (isFormattedSeries) {
+        finalSeries = seriesOrData; 
+    } else {
+        if (isPieLike) {
+            finalSeries = toNumArr(seriesOrData);
+        } else {
+            finalSeries = [{
+                name: chartCfg.series_name || chartCfg.y_axis_title || "Value",
+                data: toNumArr(seriesOrData)
+            }];
+        }
+    }
+
+    // Resolve palette if function exists
+    var palette = (typeof resolvePalette === "function") ? resolvePalette(chartCfg, idx) : undefined;
+    
+    var xaxisConfig = !isPieLike ? { categories: labels } : undefined;
+    if (xaxisConfig && chartCfg.x_axis_title) {
+      xaxisConfig.title = { text: chartCfg.x_axis_title };
+    }
+    
+    var yaxisConfig = !isPieLike ? {} : undefined;
+    if (yaxisConfig && chartCfg.y_axis_title) {
+      yaxisConfig.title = { text: chartCfg.y_axis_title };
+    }
+
+    var options = {
+      chart: { type: type, height: 320, toolbar: { show: false } },
+      series: finalSeries,
+      xaxis: xaxisConfig,
+      yaxis: yaxisConfig,
+      dataLabels: { enabled: chartCfg.show_values !== false },
+      colors: palette,
+      tooltip: { shared: !isPieLike, intersect: false },
+      legend: { show: true }
+    };
+
+    if (isPieLike) {
+      options.labels = labels;
+    }
+
+    var apexChart = new ApexCharts(container, options);
+    if (typeof mqChartInstances !== "undefined") mqChartInstances.push(apexChart);
+    
+    apexChart.render().catch(function (err) {
+      console.error("ApexCharts render error", err);
+      container.innerHTML = '<div class="mq-chart-error">Unable to render chart.</div>';
+    });
+  }
+
+  // Helper: Render Table (From NEW Fix Code - Better Styling)
+  function renderTable(container, columns, rows) {
+    var tableContainer = document.createElement("div");
+    tableContainer.style.height = "100%";
+    tableContainer.style.overflowY = "auto";
+    tableContainer.style.overflowX = "auto";
+    
+    var tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    
+    // Headers
+    if (columns && columns.length) {
+      tableHtml += '<thead><tr>';
+      columns.forEach(function(col) {
+        tableHtml += '<th style="position:sticky;top:0;background:#f9fafb;border:1px solid #e5e7eb;' +
+          'padding:8px;text-align:left;font-weight:600;color:#374151;">' + 
+          escapeHTML(col) + '</th>';
+      });
+      tableHtml += '</tr></thead>';
+    }
+    
+    // Data
+    tableHtml += '<tbody>';
+    if (rows && rows.length) {
+      rows.forEach(function(row, rowIdx) {
+        var bgColor = rowIdx % 2 === 0 ? "#ffffff" : "#f9fafb";
+        tableHtml += '<tr style="background:' + bgColor + ';">';
+        
+        if (Array.isArray(row)) {
+          row.forEach(function(cell) {
+            var cellValue = cell != null ? String(cell) : '';
+            if (cellValue.length > 50) {
+              cellValue = cellValue.substring(0, 47) + '...';
+            }
+            tableHtml += '<td style="border:1px solid #e5e7eb;padding:6px 8px;' +
+              'color:#374151;">' + escapeHTML(cellValue) + '</td>';
+          });
+        } else {
+            // Single value row
+            var val = row != null ? String(row) : '';
+            tableHtml += '<td style="border:1px solid #e5e7eb;padding:6px 8px;' +
+              'color:#374151;">' + escapeHTML(val) + '</td>';
+        }
+        tableHtml += '</tr>';
+      });
+    } else {
+      tableHtml += '<tr><td colspan="' + (columns ? columns.length : 1) + '" style="padding:20px;text-align:center;color:#9ca3af;">No data available</td></tr>';
+    }
+    tableHtml += '</tbody></table>';
+    
+    tableContainer.innerHTML = tableHtml;
+    container.innerHTML = '';
+    container.appendChild(tableContainer);
+  }
+
+  // ---------------------------------------------------------
+  // MAIN LOOP: Process Each Chart
+  // ---------------------------------------------------------
+  chartsArray.forEach(function (chart, idx) {
+    // Card Styling from Fix Code (Cleaner)
     var card = document.createElement("div");
     card.className = "mq-chart-card";
+    card.style.border = "1px solid #e5e7eb";
+    card.style.borderRadius = "8px";
+    card.style.padding = "16px";
+    card.style.backgroundColor = "#fff";
+    card.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
     grid.appendChild(card);
+
     var titleEl = document.createElement("div");
     titleEl.className = "mq-chart-title";
+    titleEl.style.fontSize = "14px";
+    titleEl.style.fontWeight = "600";
+    titleEl.style.marginBottom = "8px";
+    titleEl.style.color = "#374151";
     titleEl.textContent = chart.title || "Chart " + (idx + 1);
     card.appendChild(titleEl);
+
     if (chart.subtitle) {
       var subEl = document.createElement("div");
       subEl.className = "mq-chart-subtitle";
+      subEl.style.fontSize = "12px";
+      subEl.style.color = "#6b7280";
+      subEl.style.marginBottom = "12px";
       subEl.textContent = chart.subtitle;
       card.appendChild(subEl);
     }
+
     var chartDiv = document.createElement("div");
     chartDiv.id = "mq_chart_" + (idx + 1);
+    chartDiv.style.height = "320px";
     card.appendChild(chartDiv);
+
+    // Detect Data Source
     var hasLabels = Array.isArray(chart.labels);
-    var hasSeriesArray =
-      Array.isArray(chart.series) && chart.series.length > 0;
-    var hasSimpleData =
-      hasLabels &&
-      (Array.isArray(chart.data) ||
-        (hasSeriesArray && Array.isArray(chart.series[0].data)));
-    var isMapChart =
-      (chart.chartType || chart.type || "").toString().toLowerCase() === "map";
-    var hasMapData =
-      isMapChart &&
-      Array.isArray(chart.latitudes) &&
-      chart.latitudes.length &&
-      Array.isArray(chart.longitudes) &&
-      chart.longitudes.length;
-    var hasData = hasSeriesArray || hasSimpleData || hasMapData;
+    var hasSeriesArray = Array.isArray(chart.series) && chart.series.length > 0;
+    var hasSimpleData = hasLabels && (Array.isArray(chart.data) || (hasSeriesArray && Array.isArray(chart.series[0].data)));
+    
+    var chartType = (chart.chartType || chart.type || "bar").toString().toLowerCase();
+    var isMapChart = chartType === "map";
+    var hasMapData = isMapChart && Array.isArray(chart.latitudes) && chart.latitudes.length;
+    
+    // Table specific check
+    var isTable = chartType === "table";
+    var hasTableData = isTable && Array.isArray(chart.data) && chart.data.length;
 
-        var hasSqlOnly =
-      !isMapChart &&
-      !hasData &&
-      typeof chart.sql === "string" &&
-      chart.sql.trim() !== "";
+    var hasData = hasSeriesArray || hasSimpleData || hasMapData || hasTableData;
+    var hasSqlOnly = !hasData && typeof chart.sql === "string" && chart.sql.trim() !== "";
+
+    // ---------------------------------------------------------
+    // PATH A: RUNNING SQL DYNAMICALLY (Async with Closure Fix)
+    // ---------------------------------------------------------
     if (hasSqlOnly) {
-      console.warn(
-        "Chart has SQL only, fetching data via RUN_CHART_SQL.",
-        chart
-      );
-      chartDiv.innerHTML =
-        '<div class="mq-chart-loading" style="margin-top:8px;font:12px/1.5 system-ui;color:#6b7280;">Running query and loading chart…</div>';
-      apex.server.process(
-        "RUN_CHART_SQL",
-        {
-          x01: chart.sql
-        },
-        {
-          dataType: "json",
-          success: function (res) {
-            if (!res || res.ok === false) {
-              console.error("RUN_CHART_SQL error", res && res.error);
-              var errHtml =
-                '<div class="mq-chart-error">' +
-                escapeHTML(res && res.error ? res.error : 'Error loading chart data.') +
-                '</div>';
-              chartDiv.innerHTML = errHtml;
-              return;
-            }
-            var labels = Array.isArray(res.labels) ? res.labels : [];
-            var data = Array.isArray(res.data) ? res.data : [];
+      console.log("Chart has SQL only, fetching data via RUN_CHART_SQL.", chart);
+      chartDiv.innerHTML = '<div class="mq-chart-loading" style="margin-top:8px;font:12px/1.5 system-ui;color:#6b7280;">Running query...</div>';
+      
+      // Use IIFE (Closure) to capture 'chartDiv', 'chartType', etc. correctly
+      (function(containerEl, type, chartCfg, chartIndex) {
+          apex.server.process(
+            "RUN_CHART_SQL",
+            { x01: chartCfg.sql },
+            {
+              dataType: "json",
+              success: function (res) {
+                if (!res || res.ok === false) {
+                  console.error("RUN_CHART_SQL error", res && res.error);
+                  var errHtml = '<div class="mq-chart-error" style="padding:20px;color:#ef4444;">' + 
+                                escapeHTML(res && res.error ? res.error : 'Error loading chart data.') + '</div>';
+                  containerEl.innerHTML = errHtml;
+                  return;
+                }
 
-            if (!labels.length || !data.length) {
-              chartDiv.innerHTML =
-                '<div class="mq-chart-error">No data returned for this chart.</div>';
-              return;
-            }
-            var chartKind = (
-              chart.chartType ||
-              chart.type ||
-              "bar"
-            )
-              .toString()
-              .toLowerCase();
-            var type;
-            if (chartKind === "line") {
-              type = "line";
-            } else if (chartKind === "area") {
-              type = "area";
-            } else if (chartKind === "pie") {
-              type = "pie";
-            } else if (chartKind === "donut") {
-              type = "donut";
-            } else if (
-              chartKind === "radialbar" ||
-              chartKind === "radial_bar"
-            ) {
-              type = "radialBar";
-            } else {
-              type = "bar";
-            }
-            var isPieLike =
-              type === "pie" ||
-              type === "donut" ||
-              type === "radialBar";
-            var palette = resolvePalette(chart, idx);
-            var apexSeries;
-            if (isPieLike) {
-              apexSeries = toNumberArray(data);
-            } else {
-              apexSeries = [
-                {
-                  name:
-                    chart.series_name ||
-                    chart.y_axis_title ||
-                    "Value",
-                  data: toNumberArray(data)
+                var rows = res.data || [];
+                var cols = res.columns || [];
+
+                // === 1. HANDLE TABLE (Dynamic - New Style) ===
+                if (type === "table") {
+                   renderTable(containerEl, cols, rows);
+                   return;
                 }
-              ];
-            }
-            var xaxisConfig = !isPieLike
-              ? {
-                  categories: labels
+
+                // === 2. HANDLE MAP (Dynamic - Original Logic) ===
+                if (type === "map") {
+                    var points = [];
+                    rows.forEach(function(r) {
+                       if (Array.isArray(r) && r.length >= 3) {
+                           points.push({
+                               label: r[0],
+                               lat: Number(r[1]),
+                               lon: Number(r[2]),
+                               value: r[3]
+                           });
+                       }
+                    });
+                    renderLeafletMap(containerEl, points);
+                    return;
                 }
-              : undefined;
-            if (xaxisConfig && chart.x_axis_title) {
-              xaxisConfig.title = { text: chart.x_axis_title };
-            }
-            var yaxisConfig = !isPieLike ? {} : undefined;
-            if (yaxisConfig && chart.y_axis_title) {
-              yaxisConfig.title = { text: chart.y_axis_title };
-            }
-            var options = {
-              chart: {
-                type: type,
-                height: 320,
-                toolbar: { show: false }
+
+                // === 3. HANDLE STANDARD CHART (Dynamic - Original Logic) ===
+                var labels = [];
+                var data = [];
+                rows.forEach(function (row) {
+                    if (Array.isArray(row) && row.length >= 2) {
+                        labels.push(row[0]); 
+                        data.push(row[1]);   
+                    }
+                });
+
+                if (!labels.length || !data.length) {
+                  containerEl.innerHTML = '<div class="mq-chart-error" style="padding:20px;color:#9ca3af;">No data returned.</div>';
+                  return;
+                }
+                
+                renderApexChart(containerEl, type, labels, data, chartCfg, chartIndex, false);
               },
-              series: apexSeries,
-              xaxis: xaxisConfig,
-              yaxis: yaxisConfig,
-              dataLabels: {
-                enabled: chart.show_values === false ? false : true
-              },
-              colors: palette,
-              tooltip: {
-                shared: !isPieLike,
-                intersect: false
-              },
-              legend: {
-                show: true
+              error: function (jqXHR, textStatus, errorThrown) {
+                var serverMsg = (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.error) || (jqXHR && jqXHR.responseText) || errorThrown || textStatus;
+                containerEl.innerHTML = '<div class="mq-chart-error" style="padding:20px;color:#ef4444;">SQL Error: ' + escapeHTML(serverMsg) + '</div>';
               }
-            };
-
-            if (isPieLike) {
-              options.labels = labels;
             }
-            var apexChart = new ApexCharts(chartDiv, options);
-            mqChartInstances.push(apexChart);
-            apexChart.render().catch(function (err) {
-              chartDiv.innerHTML =
-                '<div class="mq-chart-error">Unable to render chart.</div>';
-            });
-          },
-          error: function (jqXHR, textStatus, errorThrown) {
-            var serverMsg =
-              (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.error) ||
-              (jqXHR && jqXHR.responseText) ||
-              errorThrown ||
-              textStatus;
+          );
+      })(chartDiv, chartType, chart, idx);
 
-            chartDiv.innerHTML =
-              '<div class="mq-chart-error">Error calling RUN_CHART_SQL: ' +
-              escapeHTML(serverMsg) +
-              '</div>';
-          }
-        }
-      );
-      return;
+      return; // Continue to next chart iteration
     }
-    if (!hasData) {
 
-      chartDiv.innerHTML =
-        '<div class="mq-chart-error">No data available for this chart.</div>';
-      return;
-    }
+    // ---------------------------------------------------------
+    // PATH B: STATIC DATA (JSON already present)
+    // ---------------------------------------------------------
+    
+    // 1. Map (Static)
     if (isMapChart) {
-      var mapLabels = hasLabels ? chart.labels : [];
-      var latitudes = Array.isArray(chart.latitudes) ? chart.latitudes : [];
-      var longitudes = Array.isArray(chart.longitudes) ? chart.longitudes : [];
-      var mapValues = Array.isArray(chart.data) ? chart.data : [];
-
-      if (!latitudes.length || latitudes.length !== longitudes.length) {
-        chartDiv.innerHTML =
-          '<div class="mq-chart-error">No coordinates available for this map.</div>';
-        return;
-      }
-
-      var mapPoints = latitudes.map(function (lat, idx) {
-        return {
-          lat: Number(lat),
-          lon: Number(longitudes[idx]),
-          label: mapLabels && mapLabels[idx] != null ? mapLabels[idx] : "Location",
-          value: mapValues && mapValues[idx] != null ? mapValues[idx] : null
-        };
-      }).filter(function (pt) {
-        return Number.isFinite(pt.lat) && Number.isFinite(pt.lon);
-      });
-
-      if (!mapPoints.length) {
-        chartDiv.innerHTML =
-          '<div class="mq-chart-error">No valid latitude/longitude pairs for this map.</div>';
-        return;
-      }
-
-      chartDiv.style.height = "360px";
-      chartDiv.style.position = "relative";
-      chartDiv.innerHTML = '<div class="mq-chart-loading">Loading map…</div>';
-
-      ensureLeaflet()
-        .then(function () {
-          if (!window.L || typeof window.L.map !== "function") {
-            chartDiv.innerHTML =
-              '<div class="mq-chart-error">Map library is unavailable.</div>';
-            return;
-          }
-
-          chartDiv.innerHTML = "";
-          var map = L.map(chartDiv);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '&copy; OpenStreetMap contributors'
-          }).addTo(map);
-
-          var bounds = [];
-          mapPoints.forEach(function (pt) {
-            bounds.push([pt.lat, pt.lon]);
-            var popupHtml =
-              '<strong>' + escapeHTML(pt.label) + '</strong>' +
-              (pt.value != null
-                ? '<br/>Value: ' + escapeHTML(pt.value)
-                : "");
-            L.circleMarker([pt.lat, pt.lon], {
-              radius: 6,
-              fillColor: "#2563eb",
-              color: "#1d4ed8",
-              weight: 1,
-              fillOpacity: 0.8
-            })
-              .addTo(map)
-              .bindPopup(popupHtml);
-          });
-
-          if (bounds.length === 1) {
-            map.setView(bounds[0], 6);
-          } else {
-            map.fitBounds(bounds, { padding: [20, 20] });
-          }
-
-          mqChartInstances.push(map);
-        })
-        .catch(function () {
-          chartDiv.innerHTML =
-            '<div class="mq-chart-error">Unable to load map tiles.</div>';
+        var lats = chart.latitudes || [];
+        var lons = chart.longitudes || [];
+        var lbls = chart.labels || [];
+        var vals = chart.data || [];
+        var points = lats.map(function(lat, i){
+            return { lat: Number(lat), lon: Number(lons[i]), label: lbls[i] || "Loc", value: vals[i] };
         });
-
-      return;
+        renderLeafletMap(chartDiv, points);
+        return;
     }
 
-    var sanitizedLabels = hasLabels
-      ? chart.labels.map(function (l) {
-          return l === null || l === undefined ? "" : String(l);
-        })
-      : [];
-    var chartKind = (
-      chart.chartType ||
-      chart.type ||
-      "bar"
-    )
-      .toString()
-      .toLowerCase();
-    var type;
-    if (chartKind === "line") {
-      type = "line";
-    } else if (chartKind === "area") {
-      type = "area";
-    } else if (chartKind === "pie") {
-      type = "pie";
-    } else if (chartKind === "donut") {
-      type = "donut";
-    } else if (chartKind === "radialbar" || chartKind === "radial_bar") {
-      type = "radialBar";
-    } else {
-      type = "bar";
+    // 2. Table (Static - New Style)
+    if (chartType === "table") {
+        renderTable(chartDiv, chart.columns, chart.data);
+        return;
     }
-    var isPieLike =
-      type === "pie" || type === "donut" || type === "radialBar";
-    var apexSeries;
+
+    // 3. Standard Chart (Static)
+    var sData;
+    var isPieLike = (chartType === "pie" || chartType === "donut" || chartType === "radialbar");
+
     if (isPieLike) {
-      if (Array.isArray(chart.series) && !Array.isArray(chart.series[0])) {
-        apexSeries = toNumberArray(chart.series);
-      } else if (Array.isArray(chart.data)) {
-        apexSeries = toNumberArray(chart.data);
-      } else {
-
-        chartDiv.innerHTML =
-          '<div class="mq-chart-error">No numeric data for pie/donut chart.</div>';
-        return;
-      }
+         sData = chart.series || chart.data; 
     } else {
-      if (
-        Array.isArray(chart.series) &&
-        Array.isArray(chart.series[0].data)
-      ) {
-        apexSeries = normalizeSeriesData(chart.series);
-      } else if (Array.isArray(chart.data)) {
-        apexSeries = [
-          {
-            name:
-              chart.series_name ||
-              chart.y_axis_title ||
-              "Value",
-            data: toNumberArray(chart.data)
-          }
-        ];
-      } else {
-        console.warn("Invalid series data, skipping chart", chart);
-        chartDiv.innerHTML =
-          '<div class="mq-chart-error">No numeric data for this chart.</div>';
-        return;
-      }
+         if (Array.isArray(chart.series) && chart.series[0] && chart.series[0].data) {
+             sData = chart.series[0].data; 
+         } else {
+             sData = chart.data;
+         }
     }
-    var palette = resolvePalette(chart, idx);
-    var xaxisConfig = !isPieLike
-      ? {
-          categories: sanitizedLabels
-        }
-      : undefined;
-    if (xaxisConfig && chart.x_axis_title) {
-      xaxisConfig.title = { text: chart.x_axis_title };
-    }
-    var yaxisConfig = !isPieLike ? {} : undefined;
-    if (yaxisConfig && chart.y_axis_title) {
-      yaxisConfig.title = { text: chart.y_axis_title };
-    }
-    var options = {
-      chart: {
-        type: type,
-        height: 320,
-        toolbar: { show: false }
-      },
-      series: apexSeries,
-      xaxis: xaxisConfig,
-      yaxis: yaxisConfig,
-      dataLabels: {
-        enabled: chart.show_values === false ? false : true
-      },
-      colors: palette,
-      tooltip: {
-        shared: !isPieLike,
-        intersect: false
-      },
-      legend: {
-        show: true
-      }
-    };
-    if (isPieLike && Array.isArray(chart.labels)) {
-      options.labels = chart.labels;
-    }
-    if (
-      !apexSeries ||
-      !Array.isArray(apexSeries) ||
-      apexSeries.length === 0
-    ) {
-
-      chartDiv.innerHTML =
-        '<div class="mq-chart-error">No series data for this chart.</div>';
-      return;
-    }
-
-    var apexChart = new ApexCharts(chartDiv, options);
-    mqChartInstances.push(apexChart);
-    apexChart.render().catch(function (err) {
-      chartDiv.innerHTML =
-        '<div class="mq-chart-error">Unable to render chart.</div>';
-    });
+    
+    // Normalize labels
+    var sanitizedLabels = (chart.labels || []).map(function(l) { return l === null ? "" : String(l); });
+    
+    renderApexChart(chartDiv, chartType, sanitizedLabels, sData, chart, idx, false);
   });
 };
 })(apex, apex.jQuery);
