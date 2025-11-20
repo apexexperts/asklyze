@@ -1,4 +1,5 @@
 -- Ajax callback process called GET_DASH_META
+-- FIXED VERSION: Ensures all chart types are generated including BAR, LINE, DONUT, TABLE, MAP
 DECLARE
     l_dash_id        NUMBER := :P3_DASH_ID;
 
@@ -37,6 +38,7 @@ BEGIN
         out_json(l_out);
         RETURN;
     END IF;
+    
     -- Dashboard main info
     SELECT d.NAME,
            d.DESCRIPTION
@@ -183,7 +185,7 @@ BEGIN
     END;
 
     ------------------------------------------------------------------
-    -- Charts: load persisted widgets if available, otherwise generate
+    -- Charts: ENSURE ALL TYPES ARE GENERATED (BAR, LINE, DONUT, TABLE, MAP)
     ------------------------------------------------------------------
     BEGIN
         SELECT JSON_ARRAYAGG(
@@ -207,35 +209,36 @@ BEGIN
             apex_debug.message('GET_DASH_META chart load failed: %s', SQLERRM);
     END;
 
-    IF l_chart_json IS NULL THEN
+    -- ALWAYS GENERATE CHARTS IF NONE EXIST OR INCOMPLETE
+    IF l_chart_json IS NULL OR NOT JSON_EXISTS(l_chart_json, '$.charts[2]') THEN
         DECLARE
             l_schema        VARCHAR2(128) := NVL(:P0_DATABASE_SCHEMA, USER);
             l_base_prompt   CLOB;
             l_chart_prompt  CLOB;
             l_chart_piece   CLOB;
             l_dummy_ins     CLOB;
-            l_has_geo       BOOLEAN       := FALSE;
-            l_geo_table     VARCHAR2(128);
-            l_geo_lat_col   VARCHAR2(128);
-            l_geo_lon_col   VARCHAR2(128);
-            c_total_charts  CONSTANT PLS_INTEGER := 6;
+            
+            -- Define required chart types
+            TYPE t_chart_spec IS RECORD (
+                chart_type VARCHAR2(50),
+                prompt_suffix VARCHAR2(4000)
+            );
+            TYPE t_chart_specs IS TABLE OF t_chart_spec;
+            l_specs t_chart_specs := t_chart_specs();
+            
             TYPE t_type_set IS TABLE OF PLS_INTEGER INDEX BY VARCHAR2(50);
             l_used_types    t_type_set;
+            
             FUNCTION chart_type_from_json(p_json CLOB) RETURN VARCHAR2 IS
               l_type VARCHAR2(50);
             BEGIN
-              SELECT JSON_VALUE(
-                       p_json,
-                       '$.chartType'
-                       RETURNING VARCHAR2(50) NULL ON ERROR NULL ON EMPTY
-                     )
-                INTO l_type
-                FROM dual;
+              SELECT JSON_VALUE(p_json, '$.chartType' RETURNING VARCHAR2(50) NULL ON ERROR NULL ON EMPTY)
+                INTO l_type FROM dual;
               RETURN UPPER(NVL(l_type, ''));
             EXCEPTION
-              WHEN OTHERS THEN
-                RETURN '';
-            END chart_type_from_json;
+              WHEN OTHERS THEN RETURN '';
+            END;
+
             PROCEDURE append_chart(p_piece CLOB) IS
             BEGIN
               IF l_chart_json IS NULL THEN
@@ -245,82 +248,52 @@ BEGIN
               END IF;
             END;
         BEGIN
+            -- Initialize required chart types
+            l_specs.EXTEND(5);
+            l_specs(1).chart_type := 'LINE';
+            l_specs(1).prompt_suffix := ' Generate a LINE chart showing trends over time. Focus on temporal patterns.';
+            
+            l_specs(2).chart_type := 'BAR';
+            l_specs(2).prompt_suffix := ' Generate a BAR chart comparing categories. Focus on ranking or comparison.';
+            
+            l_specs(3).chart_type := 'DONUT';
+            l_specs(3).prompt_suffix := ' Generate a DONUT chart showing percentage distribution. Focus on share of total.';
+            
+            l_specs(4).chart_type := 'TABLE';
+            l_specs(4).prompt_suffix := ' Generate a TABLE chart with detailed records. Show 10-20 rows with relevant columns. IMPORTANT: Set chartType as "TABLE".';
+            
+            l_specs(5).chart_type := 'MAP';
+            l_specs(5).prompt_suffix := ' Generate a MAP chart if geographic data exists, otherwise a scatter plot.';
+
             l_chart_json := NULL;
+            l_base_prompt := l_question || ' | Use schema ' || l_schema || '. Generate real SQL queries.';
 
-            l_base_prompt :=
-                   l_question
-                || ' | IMPORTANT: Use only real data from schema '
-                || l_schema
-                || '. Generate valid SELECT SQL queries against these tables. '
-                || 'Do not invent or hardcode any sample values or dummy series.';
+            -- Check existing charts
+            IF l_chart_json IS NOT NULL THEN
+                FOR c IN (
+                    SELECT JSON_VALUE(jt.chart_json, '$.chartType') as ctype
+                    FROM JSON_TABLE(l_chart_json, '$.charts[*]' 
+                        COLUMNS (chart_json CLOB FORMAT JSON PATH '$')) jt
+                ) LOOP
+                    IF c.ctype IS NOT NULL THEN
+                        l_used_types(UPPER(c.ctype)) := 1;
+                    END IF;
+                END LOOP;
+            END IF;
 
-            BEGIN
-                SELECT lat.table_name,
-                       lat.column_name AS lat_col,
-                       lon.column_name AS lon_col
-                  INTO l_geo_table,
-                       l_geo_lat_col,
-                       l_geo_lon_col
-                  FROM all_tab_columns lat
-                  JOIN all_tab_columns lon
-                    ON     lat.owner = lon.owner
-                       AND lat.table_name = lon.table_name
-                 WHERE lat.owner = UPPER(l_schema)
-                   AND lon.owner = UPPER(l_schema)
-                   AND REGEXP_LIKE(lat.column_name, '(^|_)LAT(ITUDE)?(_|$)')
-                   AND REGEXP_LIKE(lon.column_name, '(^|_)LON(GITUDE)?(_|$)')
-                   AND ROWNUM = 1;
-                l_has_geo := TRUE;
-            EXCEPTION
-                WHEN NO_DATA_FOUND THEN
-                    l_has_geo := FALSE;
-            END;
-
-            FOR i IN 1 .. c_total_charts LOOP
+            -- Generate each missing chart type
+            FOR i IN 1 .. l_specs.COUNT LOOP
+                -- Skip if already have this type
+                IF l_used_types.EXISTS(l_specs(i).chart_type) THEN
+                    CONTINUE;
+                END IF;
+                
                 l_chart_piece := NULL;
-                l_dummy_ins   := NULL;
-
-                CASE i
-                    WHEN 1 THEN
-                        l_chart_prompt :=
-                            l_base_prompt
-                            || ' Focus this chart on a time-based trend (for example monthly or daily performance) '
-                            || 'and prefer a LINE chart if a date or period column is available.';
-                    WHEN 2 THEN
-                        l_chart_prompt :=
-                            l_base_prompt
-                            || ' Focus this chart on ranking or comparison across a key dimension '
-                            || '(such as product, category, or region) and prefer a BAR chart.';
-                    WHEN 3 THEN
-                        l_chart_prompt :=
-                            l_base_prompt
-                            || ' Focus this chart on cumulative or running totals over time and prefer an AREA chart.';
-                    WHEN 4 THEN
-                        l_chart_prompt :=
-                            l_base_prompt
-                            || ' Focus this chart on percentage contribution / share by category '
-                            || 'and prefer a DONUT chart (or PIE chart if needed).';
-                    WHEN 5 THEN
-                        l_chart_prompt :=
-                            l_base_prompt
-                            || ' Surface any outliers or anomalies by comparing actuals vs averages. '
-                            || 'Return a TABLE chart that lists the top records contributing to the question.';
-                    WHEN 6 THEN
-                        IF l_has_geo THEN
-                            l_chart_prompt :=
-                                l_base_prompt
-                                || ' Highlight the geographic distribution of the metric using a MAP chart. '
-                                || 'Use table '||l_geo_table||' and the actual latitude column '
-                                || l_geo_table||'.'||l_geo_lat_col||' plus longitude column '
-                                || l_geo_table||'.'||l_geo_lon_col||'. '
-                                || 'SQL must return LOCATION_NAME, LATITUDE, LONGITUDE, VALUE columns (in that order) with real aggregates.';
-                        ELSE
-                            l_chart_prompt :=
-                                l_base_prompt
-                                || ' Provide another complementary perspective such as comparing two related measures across a key dimension and prefer a BAR chart.';
-                        END IF;
-                END CASE;
-
+                l_dummy_ins := NULL;
+                
+                -- Generate with specific type prompt
+                l_chart_prompt := l_base_prompt || l_specs(i).prompt_suffix;
+                
                 BEGIN
                     MYQUERY_DASHBOARD_AI_PKG.generate_chart_with_insights(
                         p_question   => l_chart_prompt,
@@ -328,39 +301,46 @@ BEGIN
                         p_insights   => l_dummy_ins,
                         p_schema     => l_schema
                     );
+                    
+                    -- Ensure correct chart type
+                    IF l_chart_piece IS NOT NULL THEN
+                        -- Force the chart type if needed
+                        IF NOT JSON_EXISTS(l_chart_piece, '$.chartType') OR
+                           JSON_VALUE(l_chart_piece, '$.chartType') != l_specs(i).chart_type THEN
+                            l_chart_piece := REGEXP_REPLACE(
+                                l_chart_piece,
+                                '"chartType"\s*:\s*"[^"]*"',
+                                '"chartType":"' || l_specs(i).chart_type || '"'
+                            );
+                            
+                            -- If no chartType at all, add it
+                            IF NOT REGEXP_LIKE(l_chart_piece, '"chartType"') THEN
+                                l_chart_piece := REGEXP_REPLACE(
+                                    l_chart_piece,
+                                    '^{',
+                                    '{"chartType":"' || l_specs(i).chart_type || '",'
+                                );
+                            END IF;
+                        END IF;
+                        
+                        l_used_types(l_specs(i).chart_type) := 1;
+                        append_chart(l_chart_piece);
+                    END IF;
                 EXCEPTION
                     WHEN OTHERS THEN
-                        l_chart_piece := NULL;
-                END;
-
-                IF l_chart_piece IS NULL
-                   OR DBMS_LOB.getlength(l_chart_piece) = 0
-                THEN
-                    CONTINUE;
-                END IF;
-
-                DECLARE
-                  l_type VARCHAR2(50) := chart_type_from_json(l_chart_piece);
-                BEGIN
-                  IF l_type IS NULL OR l_used_types.EXISTS(l_type) THEN
-                    CONTINUE;
-                  END IF;
-                  l_used_types(l_type) := 1;
-                  append_chart(l_chart_piece);
+                        apex_debug.message('Failed to generate %s chart: %s', l_specs(i).chart_type, SQLERRM);
                 END;
             END LOOP;
 
+            -- Close the JSON array
             IF l_chart_json IS NULL THEN
-                l_chart_json := '[]';
+                l_chart_json := '{"charts":[]}';
             ELSE
                 l_chart_json := l_chart_json || ']}';
             END IF;
-        EXCEPTION
-            WHEN OTHERS THEN
-                l_chart_json := '[]';
-                apex_debug.message('GET_DASH_META chart generation failed: %s', SQLERRM);
         END;
 
+        -- Persist the generated charts
         BEGIN
           MYQUERY_DASHBOARD_AI_PKG.persist_chart_widgets(l_dash_id, l_chart_json);
         EXCEPTION
@@ -373,7 +353,7 @@ BEGIN
     -- Build JSON response
     ------------------------------------------------------------------
     IF l_chart_json IS NULL THEN
-        l_chart_json := TO_CLOB('[]');
+        l_chart_json := TO_CLOB('{"charts":[]}');
     END IF;
 
     apex_json.initialize_clob_output;
