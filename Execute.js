@@ -1,4 +1,3 @@
---Execute when Page Loads
 (function () {
   if (window.mqSideMenuInit) { return; }
   window.mqSideMenuInit = true;
@@ -118,7 +117,7 @@
   if (window.mqSideMenuInterval) {
     clearInterval(window.mqSideMenuInterval);
   }
-  window.mqSideMenuInterval = setInterval(refreshSideMenu, 100000000); // 10s
+  window.mqSideMenuInterval = setInterval(refreshSideMenu, 100); // 10s
 
 })();
 
