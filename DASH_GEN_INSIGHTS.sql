@@ -1,4 +1,3 @@
-//Ajax callback process called DASH_GEN_INSIGHTS
 DECLARE
   v_dash_id        NUMBER := TO_NUMBER(:P3_DASH_ID);
   v_done           NUMBER := 0;
