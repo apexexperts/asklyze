@@ -266,6 +266,19 @@ create or replace PACKAGE BODY myquery_dashboard_ai_pkg AS
         'SELECT * FROM (' || l_sql_clean || ') WHERE ROWNUM <= ' || c_preview_limit;
     END IF;
 
+    IF p_chart_type = 'TABLE' THEN
+  -- For TABLE, just validate it's a valid SELECT
+  -- Don't require numeric columns
+  BEGIN
+    EXECUTE IMMEDIATE 'SELECT * FROM (' || p_sql || ') WHERE ROWNUM = 1';
+    RETURN TRUE;
+  EXCEPTION
+    WHEN OTHERS THEN
+      p_error := SQLERRM;
+      RETURN FALSE;
+  END;
+END IF;
+
     l_cur := DBMS_SQL.OPEN_CURSOR;
     DBMS_SQL.PARSE(l_cur, l_sql_wrap, DBMS_SQL.NATIVE);
     DBMS_SQL.DESCRIBE_COLUMNS2(l_cur, l_cols, l_desc);
@@ -887,153 +900,199 @@ END generate_kpi_blocks;
   ---------------------------------------------------------------------------
   -- Generate a single chart config + insights (schema-aware)
   ---------------------------------------------------------------------------
-  PROCEDURE generate_chart_with_insights(
-    p_question   IN  VARCHAR2,
-    p_chart_data OUT CLOB,
-    p_insights   OUT CLOB,
-    p_schema     IN  VARCHAR2
-  ) IS
-    l_owner   VARCHAR2(128) := UPPER(NVL(p_schema, USER));
-    l_schema  CLOB;
-    l_prompt  CLOB;
-    l_body    CLOB;
-    l_resp    CLOB;
-    l_txt     CLOB;
-    l_prompt_attempt CLOB;
-    l_chart_sql CLOB;
-    l_valid   BOOLEAN := FALSE;
-    l_error   VARCHAR2(4000);
-    l_try     PLS_INTEGER := 0;
-    l_preview CLOB;
-    l_chart_type VARCHAR2(50);
-    c_max_attempts CONSTANT PLS_INTEGER := 2;
-  BEGIN
-    l_schema := build_schema_summary(l_owner, 12000);
+-- Updated generate_chart_with_insights procedure for MYQUERY_DASHBOARD_AI_PKG
+-- This version ensures TABLE type is properly generated
 
-    l_prompt :=
-      'You are designing a single chart for an Oracle BI dashboard.'||CHR(10)||
-      'Schema owner: '||l_owner||CHR(10)||
-      'Schema summary:'||CHR(10)||l_schema||CHR(10)||CHR(10)||
-      'Business question: '||NVL(p_question,'')||CHR(10)||CHR(10)||
-      'Return JSON ONLY in this exact structure:'||CHR(10)||
-      '{'||CHR(10)||
-      '  "chart": {'||CHR(10)||
-      '    "title": "Chart title",'||CHR(10)||
-      '    "subtitle": "Short description",'||CHR(10)||
-      '    "chartType": "BAR" | "LINE" | "AREA" | "PIE" | "TABLE" | "MAP",'||CHR(10)||
-      '    "sql": "SELECT ... FROM '||l_owner||'.TABLE ...",'||CHR(10)||
-      '    "color": "#2563eb"'||CHR(10)||
-      '  },'||CHR(10)||
-      '  "insights": ['||CHR(10)||
-      '    "short insight 1",'||CHR(10)||
-      '    "short insight 2"'||CHR(10)||
-      '  ]'||CHR(10)||
-      '}'||CHR(10)||
-      'Rules:'||CHR(10)||
-      '- Use ONLY tables/views that exist in the schema summary, always prefixed with '||l_owner||'.'||CHR(10)||
-      '- The SQL must be valid Oracle and return at least one numeric column and one label/dimension column.'||CHR(10)||
-      '- For MAP charts, return LOCATION_NAME (text), LATITUDE (NUMBER), LONGITUDE (NUMBER), VALUE (NUMBER) columns with those exact aliases.'||CHR(10)||
-      '- The chart should directly answer or illuminate the business question.'||CHR(10)||
-      '- Do NOT include example values or fake constants.';
+PROCEDURE generate_chart_with_insights(
+  p_question   IN  VARCHAR2,
+  p_chart_data OUT CLOB,
+  p_insights   OUT CLOB,
+  p_schema     IN  VARCHAR2
+) IS
+  l_owner   VARCHAR2(128) := UPPER(NVL(p_schema, USER));
+  l_schema  CLOB;
+  l_prompt  CLOB;
+  l_body    CLOB;
+  l_resp    CLOB;
+  l_txt     CLOB;
+  l_prompt_attempt CLOB;
+  l_chart_sql CLOB;
+  l_valid   BOOLEAN := FALSE;
+  l_error   VARCHAR2(4000);
+  l_try     PLS_INTEGER := 0;
+  l_preview CLOB;
+  l_chart_type VARCHAR2(50);
+  c_max_attempts CONSTANT PLS_INTEGER := 2;
+  
+  -- Detect if TABLE is explicitly requested
+  l_force_table BOOLEAN := FALSE;
+BEGIN
+  l_schema := build_schema_summary(l_owner, 12000);
+  
+  -- Check if TABLE type is explicitly requested
+  IF UPPER(p_question) LIKE '%TABLE%' OR 
+     UPPER(p_question) LIKE '%DETAILED%' OR 
+     UPPER(p_question) LIKE '%LIST%' OR
+     UPPER(p_question) LIKE '%RECORDS%' THEN
+    l_force_table := TRUE;
+  END IF;
 
-    WHILE l_try < c_max_attempts AND NOT l_valid LOOP
-      l_try := l_try + 1;
-      l_prompt_attempt := l_prompt;
+  l_prompt :=
+    'You are designing a single chart for an Oracle BI dashboard.'||CHR(10)||
+    'Schema owner: '||l_owner||CHR(10)||
+    'Schema summary:'||CHR(10)||l_schema||CHR(10)||CHR(10)||
+    'Business question: '||NVL(p_question,'')||CHR(10)||CHR(10)||
+    'Return JSON ONLY in this exact structure:'||CHR(10)||
+    '{'||CHR(10)||
+    '  "chart": {'||CHR(10)||
+    '    "title": "Chart title",'||CHR(10)||
+    '    "subtitle": "Short description",'||CHR(10)||
+    '    "chartType": "BAR" | "LINE" | "AREA" | "PIE" | "DONUT" | "TABLE" | "MAP",'||CHR(10)||
+    '    "sql": "SELECT ... FROM '||l_owner||'.TABLE_NAME ...",'||CHR(10)||
+    '    "color": "#2563eb"'||CHR(10)||
+    '  },'||CHR(10)||
+    '  "insights": ['||CHR(10)||
+    '    "short insight 1",'||CHR(10)||
+    '    "short insight 2"'||CHR(10)||
+    '  ]'||CHR(10)||
+    '}'||CHR(10)||
+    'Rules:'||CHR(10)||
+    '- Use ONLY tables/views that exist in the schema summary, always prefixed with '||l_owner||'.'||CHR(10)||
+    '- The SQL must be valid Oracle and return at least 2 columns.'||CHR(10)||
+    '- For TABLE charts: Return multiple columns to show detailed data, limit to 20-30 rows.'||CHR(10)||
+    '- For BAR/LINE/AREA/PIE charts: First column is label, second is numeric value.'||CHR(10)||
+    '- For MAP charts: Return LOCATION_NAME, LATITUDE, LONGITUDE, VALUE columns with those exact aliases.'||CHR(10)||
+    '- The chart should directly answer or illuminate the business question.'||CHR(10);
+    
+  -- Add specific instruction for TABLE if detected
+  IF l_force_table THEN
+    l_prompt := l_prompt || 
+      '- IMPORTANT: Use chartType "TABLE" for this request to show detailed records.'||CHR(10)||
+      '- Include relevant columns that provide comprehensive information.'||CHR(10);
+  END IF;
 
-      IF l_error IS NOT NULL THEN
-        l_prompt_attempt := l_prompt_attempt || CHR(10) ||
-          'Previous SQL attempt failed with this Oracle error: ' || l_error || '.' || CHR(10) ||
-          'Please fix the SQL and return the JSON in the exact structure again without explanation.';
-      END IF;
+  WHILE l_try < c_max_attempts AND NOT l_valid LOOP
+    l_try := l_try + 1;
+    l_prompt_attempt := l_prompt;
 
-      set_json_headers;
+    IF l_error IS NOT NULL THEN
+      l_prompt_attempt := l_prompt_attempt || CHR(10) ||
+        'Previous SQL attempt failed with this Oracle error: ' || l_error || '.' || CHR(10) ||
+        'Please fix the SQL and return the JSON in the exact structure again without explanation.';
+    END IF;
 
-      l_body := '{"model":"'
-             || REPLACE(c_default_model,'"','\"')
-             || '","input":"'
-             || json_escape(l_prompt_attempt)
-             || '"}';
+    set_json_headers;
 
-      l_resp := apex_web_service.make_rest_request(
-                  p_url                  => 'https://api.openai.com/v1/responses',
-                  p_http_method          => 'POST',
-                  p_body                 => l_body,
-                  p_credential_static_id => 'credentials_for_ai_services'
-                );
+    l_body := '{"model":"'
+           || REPLACE(c_default_model,'"','\"')
+           || '","input":"'
+           || json_escape(l_prompt_attempt)
+           || '"}';
 
-      IF apex_web_service.g_status_code <> 200 THEN
-        l_error := 'HTTP '||apex_web_service.g_status_code;
-        EXIT;
-      END IF;
+    l_resp := apex_web_service.make_rest_request(
+                p_url                  => 'https://api.openai.com/v1/responses',
+                p_http_method          => 'POST',
+                p_body                 => l_body,
+                p_credential_static_id => 'credentials_for_ai_services'
+              );
 
-      l_txt := get_response_text(l_resp);
-      l_txt := normalize_json_block(l_txt);
+    IF apex_web_service.g_status_code <> 200 THEN
+      l_error := 'HTTP '||apex_web_service.g_status_code;
+      EXIT;
+    END IF;
 
-      IF l_txt IS NULL THEN
-        l_error := 'Model returned no JSON payload';
-        CONTINUE;
-      END IF;
+    l_txt := get_response_text(l_resp);
+    l_txt := normalize_json_block(l_txt);
 
+    IF l_txt IS NULL THEN
+      l_error := 'Model returned no JSON payload';
+      CONTINUE;
+    END IF;
+
+    BEGIN
+      SELECT JSON_QUERY(
+               l_txt,
+               '$.chart'
+               RETURNING CLOB NULL ON ERROR NULL ON EMPTY
+             )
+        INTO p_chart_data
+        FROM dual;
+
+      SELECT JSON_QUERY(
+               l_txt,
+               '$.insights'
+               RETURNING CLOB NULL ON ERROR NULL ON EMPTY
+             )
+        INTO p_insights
+        FROM dual;
+    EXCEPTION
+      WHEN OTHERS THEN
+        p_chart_data := NULL;
+        p_insights   := '[]';
+    END;
+
+    IF p_chart_data IS NULL THEN
+      l_error := 'Response did not include chart JSON';
+      CONTINUE;
+    END IF;
+
+    BEGIN
+      SELECT JSON_VALUE(
+               p_chart_data,
+               '$.chartType'
+               RETURNING VARCHAR2(50) NULL ON ERROR NULL ON EMPTY
+             )
+        INTO l_chart_type
+        FROM dual;
+    EXCEPTION
+      WHEN OTHERS THEN
+        l_chart_type := NULL;
+    END;
+
+    l_chart_type := UPPER(NVL(l_chart_type, ''));
+    
+    -- If we requested TABLE but got something else, force it
+    IF l_force_table AND l_chart_type != 'TABLE' THEN
+      -- Update the chartType in the JSON
+      p_chart_data := REGEXP_REPLACE(
+        p_chart_data,
+        '"chartType"\s*:\s*"[^"]*"',
+        '"chartType":"TABLE"'
+      );
+      l_chart_type := 'TABLE';
+    END IF;
+
+    BEGIN
+      SELECT JSON_VALUE(
+               p_chart_data,
+               '$.sql'
+               RETURNING CLOB NULL ON ERROR NULL ON EMPTY
+             )
+        INTO l_chart_sql
+        FROM dual;
+    EXCEPTION
+      WHEN OTHERS THEN
+        l_chart_sql := NULL;
+    END;
+
+    IF l_chart_sql IS NULL THEN
+      l_error := 'Chart JSON missing sql';
+      CONTINUE;
+    END IF;
+
+    -- For TABLE type, we don't need strict numeric validation
+    IF l_chart_type = 'TABLE' THEN
+      -- Just validate it's a valid SELECT
       BEGIN
-        SELECT JSON_QUERY(
-                 l_txt,
-                 '$.chart'
-                 RETURNING CLOB NULL ON ERROR NULL ON EMPTY
-               )
-          INTO p_chart_data
-          FROM dual;
-
-        SELECT JSON_QUERY(
-                 l_txt,
-                 '$.insights'
-                 RETURNING CLOB NULL ON ERROR NULL ON EMPTY
-               )
-          INTO p_insights
-          FROM dual;
+        EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM (' || l_chart_sql || ') WHERE ROWNUM = 1';
+        l_valid := TRUE;
       EXCEPTION
         WHEN OTHERS THEN
-          p_chart_data := NULL;
-          p_insights   := '[]';
+          l_error := SQLERRM;
+          l_valid := FALSE;
       END;
-
-      IF p_chart_data IS NULL THEN
-        l_error := 'Response did not include chart JSON';
-        CONTINUE;
-      END IF;
-
-      BEGIN
-        SELECT JSON_VALUE(
-                 p_chart_data,
-                 '$.chartType'
-                 RETURNING VARCHAR2(50) NULL ON ERROR NULL ON EMPTY
-               )
-          INTO l_chart_type
-          FROM dual;
-      EXCEPTION
-        WHEN OTHERS THEN
-          l_chart_type := NULL;
-      END;
-
-      l_chart_type := UPPER(NVL(l_chart_type, ''));
-
-      BEGIN
-        SELECT JSON_VALUE(
-                 p_chart_data,
-                 '$.sql'
-                 RETURNING CLOB NULL ON ERROR NULL ON EMPTY
-               )
-          INTO l_chart_sql
-          FROM dual;
-      EXCEPTION
-        WHEN OTHERS THEN
-          l_chart_sql := NULL;
-      END;
-
-      IF l_chart_sql IS NULL THEN
-        l_error := 'Chart JSON missing sql';
-        CONTINUE;
-      END IF;
-
+    ELSE
+      -- For other chart types, use the existing validation
       IF validate_chart_sql(l_chart_sql, l_error, l_preview, l_chart_type) THEN
         IF l_preview IS NOT NULL THEN
           BEGIN
@@ -1050,22 +1109,62 @@ END generate_kpi_blocks;
         END IF;
         l_valid := TRUE;
       END IF;
-    END LOOP;
+    END IF;
+  END LOOP;
 
-    IF NOT l_valid THEN
+  IF NOT l_valid THEN
+    -- If we failed, create a default TABLE chart as fallback
+    IF l_force_table THEN
+      BEGIN
+        -- Get the first table from schema
+        DECLARE
+          l_first_table VARCHAR2(128);
+        BEGIN
+          SELECT table_name
+            INTO l_first_table
+            FROM all_tables
+           WHERE owner = l_owner
+             AND ROWNUM = 1;
+          
+          apex_json.initialize_clob_output;
+          apex_json.open_object;
+            apex_json.open_object('chart');
+              apex_json.write('title', 'Data Table');
+              apex_json.write('subtitle', 'Showing sample records');
+              apex_json.write('chartType', 'TABLE');
+              apex_json.write('sql', 'SELECT * FROM ' || l_owner || '.' || l_first_table || ' WHERE ROWNUM <= 20');
+              apex_json.write('color', '#475569');
+            apex_json.close_object;
+            apex_json.open_array('insights');
+              apex_json.write('Table showing first 20 records');
+            apex_json.close_array;
+          apex_json.close_object;
+          
+          l_txt := apex_json.get_clob_output;
+          apex_json.free_output;
+          
+          SELECT JSON_QUERY(l_txt, '$.chart' RETURNING CLOB) INTO p_chart_data FROM dual;
+          SELECT JSON_QUERY(l_txt, '$.insights' RETURNING CLOB) INTO p_insights FROM dual;
+        EXCEPTION
+          WHEN OTHERS THEN
+            p_chart_data := NULL;
+            p_insights := '[]';
+        END;
+      END;
+    ELSE
       p_chart_data := NULL;
       p_insights   := '[]';
-      RETURN;
     END IF;
+  END IF;
 
-    IF p_insights IS NULL THEN
-      p_insights := '[]';
-    END IF;
-  EXCEPTION
-    WHEN OTHERS THEN
-      p_chart_data := NULL;
-      p_insights   := '[]';
-  END generate_chart_with_insights;
+  IF p_insights IS NULL THEN
+    p_insights := '[]';
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    p_chart_data := NULL;
+    p_insights   := '[]';
+END generate_chart_with_insights;
 
   ---------------------------------------------------------------------------
   -- Wrapper: build_chart_data_for_dashboard
@@ -1146,6 +1245,32 @@ END generate_kpi_blocks;
                )
              ) jt
     ) LOOP
+
+    IF r.chart_type IS NULL OR r.chart_type = '' THEN
+  BEGIN
+    SELECT JSON_VALUE(r.payload, '$.type' RETURNING VARCHAR2(50))
+      INTO r.chart_type
+      FROM dual;
+  EXCEPTION
+    WHEN OTHERS THEN
+      r.chart_type := NULL;
+  END;
+END IF;
+
+IF r.chart_type IS NULL OR r.chart_type = '' THEN
+  CASE 
+    WHEN JSON_EXISTS(r.payload, '$.series') 
+      AND JSON_EXISTS(r.payload, '$.xAxis') THEN r.chart_type := 'LINE';
+    WHEN JSON_EXISTS(r.payload, '$.series') 
+      AND JSON_EXISTS(r.payload, '$.category') THEN r.chart_type := 'BAR';
+    WHEN JSON_EXISTS(r.payload, '$.donutData') THEN r.chart_type := 'DONUT';
+    WHEN JSON_EXISTS(r.payload, '$.pieData') THEN r.chart_type := 'PIE';
+    WHEN JSON_EXISTS(r.payload, '$.locations') THEN r.chart_type := 'MAP';
+    ELSE r.chart_type := 'CHART';
+  END CASE;
+END IF;
+
+
       INSERT INTO widgets (
         dashboard_id,
         title,
