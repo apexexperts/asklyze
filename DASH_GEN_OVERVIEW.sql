@@ -1,4 +1,3 @@
--- Ajax callback process called DASH_GEN_OVERVIEW
 DECLARE
   v_dash_id     NUMBER := TO_NUMBER(:P3_DASH_ID);
   v_question    VARCHAR2(4000) := :P3_QUESTION;
