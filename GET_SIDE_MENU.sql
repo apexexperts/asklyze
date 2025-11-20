@@ -1,4 +1,3 @@
--- Ajax callback process called GET_SIDE_MENU
 declare
   l_json clob;
 begin
@@ -13,8 +12,3 @@ begin
   owa_util.http_header_close;
   htp.prn(l_json);
 end;
-
-
-
-
-
