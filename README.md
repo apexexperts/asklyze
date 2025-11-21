@@ -34,7 +34,7 @@ An intelligent, AI-powered dashboard generation system built on Oracle APEX that
 │   ├── AACU_F.sql                    # User authentication function
 │   └── packages/
 │       ├── MYQUERY_DASHBOARD_AI_PKG.sql   # Main AI dashboard generation package
-│       └── MYQUERY_SMART_QUERY_PKG.sql    # Query generation and management package
+│       └── MYQUERY_NAVIGATION_PKG.sql    # Control the sidebar navigation
 │
 ├── APEX Processes/
 │   ├── DASH_PLAN.sql                 # Dashboard planning process
@@ -48,6 +48,7 @@ An intelligent, AI-powered dashboard generation system built on Oracle APEX that
 │   ├── GET_DASH_META.sql            # Dashboard metadata retrieval
 │   ├── GET_SIDE_MENU.sql            # Navigation menu generation
 │   └── RUN_CHART_SQL.sql            # Chart SQL execution
+    └── GET_DASH_NAV.sql            # Get navigation Side menu
 │
 └── JavaScript/
     ├── dashboard.js                   # Main dashboard UI controller
@@ -63,7 +64,7 @@ Stores dashboard metadata and configuration
 - `ID` - Primary key
 - `NAME` - Dashboard title
 - `DESCRIPTION` - Dashboard description/summary
-- `OWNER_USER_ID` - Dashboard owner
+- `OWNER_USER_ID` - User schema owner
 - `IS_PUBLIC` - Public/private flag
 - `CREATED_AT/UPDATED_AT` - Timestamps
 
@@ -78,13 +79,6 @@ Stores individual dashboard components
 - `VISUAL_OPTIONS` - Chart configuration JSON
 - `GRID_X/Y/W/H` - Layout positioning
 
-#### SMART_QUERY
-Stores query history and chat sessions
-- `ID` - Primary key
-- `QUERY_NAME` - Auto-generated query title
-- `QUERY_SOURCE` - SQL query text
-- `CHAT_SUMMARY` - AI-generated explanation
-- `CREATED_BY` - User identifier
 
 #### SYS_USERS
 User authentication and access control
