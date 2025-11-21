@@ -75,8 +75,6 @@ END myquery_dashboard_ai_pkg;
 
 
 
-
-
 create or replace PACKAGE BODY myquery_dashboard_ai_pkg AS
 
   ---------------------------------------------------------------------------
