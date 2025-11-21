@@ -763,6 +763,8 @@ async function renderHeaderAndOverview() {
     }
   }
 }
+
+window.renderHeaderAndOverview = renderHeaderAndOverview;
 // FIXED VERSION of runDashboardBuilder function
 // Replace the existing window.runDashboardBuilder function (starting at line 767) with this:
 
@@ -927,6 +929,10 @@ window.runDashboardBuilder = async function () {
   await renderHeaderAndOverview();
   removeBuildPlaceholders();
   finishProgress(true, "Dashboard ready");
+  if (typeof window.refreshDashMenu === "function") {
+        window.refreshDashMenu();
+    }
+    
   apex.message.showPageSuccess("Dashboard ready with AI-generated content.");
   toggleQuestionArea(true);
 };
