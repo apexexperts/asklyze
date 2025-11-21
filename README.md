@@ -10,6 +10,7 @@ An intelligent, AI-powered dashboard generation system built on Oracle APEX that
 ## 🌟 Features
 
 ### Core Capabilities
+- **Natural Language to Report and Chart**: Convert business questions into fully-functional Reports and Chart
 - **Natural Language to Dashboard**: Convert business questions into fully-functional dashboards
 - **AI-Powered SQL Generation**: Automatic SQL query generation using OpenAI GPT models
 - **Smart Chart Selection**: AI automatically selects optimal chart types based on data patterns
