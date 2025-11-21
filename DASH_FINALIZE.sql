@@ -1,4 +1,3 @@
--- Ajax callback process called DASH_FINALIZE
 DECLARE
   v_dash_id    NUMBER := TO_NUMBER(:P3_DASH_ID);
   l_out        CLOB;
