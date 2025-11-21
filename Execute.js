@@ -1,21 +1,26 @@
 (function () {
-  if (window.mqSideMenuInit) { return; }
-  window.mqSideMenuInit = true;
+  if (window.mqDashNavInit) { return; }
+  window.mqDashNavInit = true;
 
-  // Helpers
+  // --- دوال HTML ---
   function liHeader(title) {
     return $(`
-      <li class="nav-header" role="presentation" aria-hidden="true">
-        <div class="thread-category-header">${title}</div>
+      <li class="nav-header" role="presentation" style="padding: 12px 16px; font-weight: bold; color: #555; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+        <span>${title}</span>
       </li>
     `);
   }
-  function liLink(item, isCurrent) {
+  
+  function liLink(item) {
+    const isCur = (item.is_current === "YES");
+    const activeClass = isCur ? "is-selected" : ""; 
+    const activeStyle = isCur ? "background-color: rgba(0,0,0,0.05); font-weight: bold;" : "";
+    
     return $(`
-      <li id="menu_${item.id}" class="a-TreeView-node a-TreeView-node--leaf">
-        <div class="a-TreeView-content ${isCurrent ? "is-current" : ""}">
-          ${item.icon ? `<span class="${item.icon}"></span>` : ""}
-          <a class="a-TreeView-label" href="${item.target || "#"}" data-id="${item.id}">
+      <li id="menu_${item.id}" class="a-TreeView-node a-TreeView-node--leaf ${activeClass}">
+        <div class="a-TreeView-content ${activeClass}" style="${activeStyle}">
+          ${item.icon ? `<span class="${item.icon}" style="margin-right:8px;"></span>` : ""}
+          <a class="a-TreeView-label" href="${item.target || "#"}" data-id="${item.id}" style="text-decoration:none; color:inherit; flex-grow:1;">
             ${item.title}
           </a>
         </div>
@@ -23,104 +28,139 @@
     `);
   }
 
-  // Optional: log only if APEX Debug is active (Level >= 6)
-  function dbg(msg, ...rest) {
-    try {
-      if (window.apex && apex.debug && typeof apex.debug.getLevel === "function") {
-        if (apex.debug.getLevel() >= 6) {
-          // Use apex.debug.info if available, fallback to console
-          if (apex.debug.info) { apex.debug.info(msg, rest); }
-          else { console.log(msg, ...rest); }
-        }
-      }
-    } catch (e) { /* noop */ }
-  }
+  // --- دالة تحديث القائمة (AJAX) ---
+  window.refreshDashMenu = function() {
+    try { $("#t_TreeNav").off(); } catch (e) { }
 
-  // FIX: Render dashboards in side navigation and highlight current via server flag
-  function refreshSideMenu() {
-    apex.server.process("GET_SIDE_MENU", {}, {
+    // هام جداً: نرسل P0_DATABASE_SCHEMA ليتم استخدامه في الفلترة
+    apex.server.process("GET_DASH_NAV", {
+      pageItems: "#P3_DASH_ID,#P0_DATABASE_SCHEMA" 
+    }, {
       success: function (data) {
-        const $menu = $("#t_TreeNav ul");
-        $menu.empty();
-
-        // Accept “Chat History” (Page 1) or “Dashboard History” (Page 3)
-        const historyHeader = data.find(
-          x => x.is_header === "YES" &&
-               (x.title === "Chat History" || x.title === "Dashboard History")
-        );
-
-        const rootLinks = data.filter(x => x.parent_id == null && x.is_header !== "YES");
-        const groupHeaders = data.filter(
-          x => historyHeader && x.parent_id === historyHeader.id && x.is_header === "YES"
-        );
-
-        // Collect all children under their parent headers
-        const childrenByParent = {};
-        data.forEach(x => {
-          if (x.parent_id != null && x.is_header !== "YES") {
-            (childrenByParent[x.parent_id] ||= []).push(x);
-          }
-        });
-
-        // Root items (e.g., New Dashboard / Query Builder)
-        rootLinks.forEach(item => {
-          const isCur = (item.is_current === "YES");
-          $menu.append(liLink(item, isCur));
-        });
-
-        // Divider
-        $menu.append('<li class="menu-divider" aria-hidden="true" style="margin:10px 0;border-bottom:1px solid var(--ut-body-nav-border-color, rgba(0,0,0,.1));"></li>');
-
-        // History header and grouped children (Today / Last 30 days)
-        if (historyHeader) {
-          $menu.append(liHeader(historyHeader.title));
+        const $navContainer = $("#t_TreeNav");
+        let $menu = $navContainer.find("ul").first();
+        
+        if ($menu.length === 0) {
+            if ($navContainer.length === 0) return; 
+            $navContainer.html('<ul class="a-TreeView-list" role="tree"></ul>');
+            $menu = $navContainer.find("ul").first();
+        } else {
+            $menu.empty();
         }
-        groupHeaders.forEach(g => {
-          $menu.append(liHeader(g.title));
-          const children = (childrenByParent[g.id] || []);
-          children.forEach(item => {
-            const isCur = (item.is_current === "YES");
-            $menu.append(liLink(item, isCur));
-          });
+
+        if (!Array.isArray(data) || data.length === 0) {
+             $menu.html('<li style="padding:10px; color:#777;">No items found.</li>');
+             return;
+        }
+
+        const historyHeader = data.find(x => x.is_header === "YES" && x.title === "Dashboard History");
+        const rootItems = data.filter(x => x.parent_id == null && x.is_header !== "YES");
+        
+        // 1. العناصر الأساسية
+        rootItems.forEach(item => {
+            $menu.append(liLink(item));
         });
 
-        dbg(`Side menu refreshed with ${data.length} items.`);
+        $menu.append('<li style="border-bottom: 1px solid #e0e0e0; margin: 8px 0;"></li>');
+
+        // 2. الهيستوري (سيتغير الآن بناءً على السكيما)
+        if (historyHeader) {
+            $menu.append(liHeader(historyHeader.title));
+            const timeGroups = data.filter(x => x.parent_id === historyHeader.id && x.is_header === "YES");
+            
+            let hasChildren = false;
+            timeGroups.forEach(group => {
+                const children = data.filter(x => x.parent_id === group.id);
+                if(children.length > 0) {
+                    hasChildren = true;
+                    $menu.append(liHeader(group.title));
+                    children.forEach(child => {
+                        $menu.append(liLink(child));
+                    });
+                }
+            });
+            
+            if (!hasChildren) {
+                 $menu.append('<li style="padding:8px 16px; font-size:12px; color:#999;">No history for this schema</li>');
+            }
+        }
       },
-      error: function (err) {
-        // Only surface errors when debugging
-        dbg("GET_SIDE_MENU error", err);
+      error: function(jqXHR, textStatus) {
+          console.error("Menu Load Error:", textStatus);
       }
     });
-  }
+  };
 
-  // Click behavior (safe to include once)
-  $(document).off("click.mqSideNav", "#t_TreeNav .a-TreeView-label");
-  $(document).on("click.mqSideNav", "#t_TreeNav .a-TreeView-label", function (e) {
-    const $a = $(this);
-    const href = $a.attr("href") || "#";
+  // --- التعامل مع النقرات (بدون ريلود) ---
+  $("body").off("click", "#t_TreeNav a, #t_TreeNav .a-TreeView-label");
+  $("body").on("click", "#t_TreeNav a, #t_TreeNav .a-TreeView-label", async function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation(); 
 
+    const $el = $(this);
+    const href = $el.attr("href");
+
+    $("#t_TreeNav .a-TreeView-content").removeClass("is-selected").css("font-weight", "normal").css("background-color", "transparent");
+    $el.closest(".a-TreeView-content").addClass("is-selected").css("font-weight", "bold").css("background-color", "rgba(0,0,0,0.05)");
+
+    const saveSession = async (items) => {
+        try {
+            await apex.server.process("SET_SESSION_STATE", { 
+                pageItems: items 
+            }, { dataType: "json" }); 
+        } catch (err) { console.warn("Session save warning:", err); }
+    };
+
+    // 1. New Dashboard
     if (href === "#new") {
-      e.preventDefault();
-      apex.item("P3_DASH_ID").setValue(null);
-      refreshSideMenu();
+      apex.item("P3_DASH_ID").setValue("");
+      apex.item("P3_QUESTION").setValue("");
+      if(apex.item("P3_PLAN_JSON")) apex.item("P3_PLAN_JSON").setValue("");
+      
+      await saveSession("#P3_DASH_ID,#P3_QUESTION,#P3_PLAN_JSON");
+
+      $("#mq_dash, #mqDashboard, .mq-dashboard-region").empty();
+      $("#mq_chart, #mqKpiSection, #mqOverview").hide();
+      $("#P3_QUESTION_CONTAINER").show();
+      if(window.apex && apex.item("P3_QUESTION")) apex.item("P3_QUESTION").setFocus();
+      
+      window.refreshDashMenu();
       return;
     }
 
-    // Client highlight; server will set is_current on next refresh
-    $("#t_TreeNav .a-TreeView-content").removeClass("is-current");
-    $a.closest(".a-TreeView-content").addClass("is-current");
+    // 2. History Item (AJAX Load)
+    if (href && href.startsWith("#dash-")) {
+      const dashId = href.split("-")[1];
+      apex.item("P3_DASH_ID").setValue(dashId);
+      
+      await saveSession("#P3_DASH_ID");
+      
+      if (typeof window.renderHeaderAndOverview === "function") {
+         $("#mqPlaceholder").remove();
+         // إخفاء السؤال عند فتح داشبورد سابق (اختياري)
+         // $("#P3_QUESTION_CONTAINER").hide();
+         await window.renderHeaderAndOverview();
+      } else {
+         // فقط إذا فشل كل شيء نلجأ للريلود
+         window.location.reload();
+      }
+      return;
+    }
+    
+    if (href && href.startsWith("f?p=")) {
+        window.location.assign(href);
+    }
   });
 
-  // Initialize: refresh once and set a single interval
-  refreshSideMenu();
+  // *** الجزء الأهم: الاستماع لتغيير السكيما ***
+  // بمجرد تغيير القيمة، يتم تحديث القائمة فوراً بدون ريلود
+  $(document).on("change", "#P0_DATABASE_SCHEMA", function() {
+      window.refreshDashMenu();
+  });
 
-  if (window.mqSideMenuInterval) {
-    clearInterval(window.mqSideMenuInterval);
-  }
-  window.mqSideMenuInterval = setInterval(refreshSideMenu, 100); // 10s
+  // التحميل الأولي
+  $(function() {
+      window.refreshDashMenu();
+  });
 
 })();
-
-
-
-
