@@ -1,0 +1,478 @@
+<!-- =========================================
+     PERFORMANCE OVERVIEW DASHBOARD TEMPLATE
+     Oracle APEX Implementation
+
+     Instructions:
+     1. Create a new page in Oracle APEX
+     2. Set page template to "Blank Page"
+     3. Add this HTML to a Static Content region
+     4. Upload performance-dashboard.css to Static Application Files
+     5. Reference the CSS in Page Properties > CSS > File URLs
+     ========================================= -->
+
+<div class="performance-dashboard">
+
+    <!-- Header Section -->
+    <div class="perf-header">
+        <div>
+            <h1>Performance Overview</h1>
+            <div class="perf-subtitle">A Year-over-Year Performance Snapshot Across Products, Customers, and Markets</div>
+        </div>
+        <div class="perf-header-actions">
+            <button class="perf-btn" onclick="createNewDashboard()">
+                <i class="fa fa-plus"></i>
+                <span>New</span>
+            </button>
+            <button class="perf-btn" onclick="shareDashboard()">
+                <i class="fa fa-share-alt"></i>
+                <span>Share</span>
+            </button>
+            <button class="perf-btn" onclick="presentDashboard()">
+                <i class="fa fa-desktop"></i>
+                <span>Present</span>
+            </button>
+            <button class="perf-btn" onclick="refreshDashboard()">
+                <i class="fa fa-sync-alt"></i>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Top Row - Main KPIs -->
+    <div class="perf-grid-top">
+        <!-- Total Cost KPI -->
+        <div class="perf-kpi-card">
+            <div class="perf-kpi-label">Total Cost</div>
+            <div class="perf-kpi-value">$52,925</div>
+            <div class="perf-kpi-meta">Daily Order - 13</div>
+            <div class="perf-kpi-meta">Monthly Order - 164</div>
+        </div>
+
+        <!-- Ordered Quantity KPI -->
+        <div class="perf-kpi-card">
+            <div class="perf-kpi-label">Ordered Quantity</div>
+            <div class="perf-kpi-value">4,922</div>
+            <div class="perf-kpi-meta">Min Cost/Unit - $112</div>
+            <div class="perf-kpi-meta">Max Cost/Unit - $379</div>
+        </div>
+
+        <!-- Avg Lead Time KPI -->
+        <div class="perf-kpi-card">
+            <div class="perf-kpi-label">Avg Lead Time (Days)</div>
+            <div class="perf-kpi-value">31</div>
+            <div class="perf-kpi-meta">Supplier LT - 17</div>
+            <div class="perf-kpi-meta">Manufacturing LT - 15</div>
+        </div>
+
+        <!-- Average Defect Rates KPI -->
+        <div class="perf-kpi-card">
+            <div class="perf-kpi-label">Average Defect Rates</div>
+            <div class="perf-kpi-value">2.28</div>
+            <div class="perf-kpi-meta">SKU (Low) - 68</div>
+            <div class="perf-kpi-meta">SKU (High) - 32</div>
+        </div>
+
+        <!-- Defect Rates by Inspection (Donut Chart) -->
+        <div class="perf-kpi-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Defect rates by inspection method</div>
+                </div>
+            </div>
+            <div id="defect-donut-chart" class="perf-donut-wrapper"></div>
+        </div>
+
+        <!-- Which Supplier Generates Most Defects (Horizontal Bar) -->
+        <div class="perf-kpi-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Which Supplier generates most defects</div>
+                </div>
+            </div>
+            <div id="supplier-defects-chart" class="perf-hbar-chart">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row - Shipment, Revenue Trend, Location -->
+    <div class="perf-grid-3col">
+        <!-- Shipment Metric -->
+        <div>
+            <div class="perf-metric-card mb-md">
+                <div class="perf-metric-label">Shipment</div>
+                <div class="perf-metric-value">830</div>
+                <div class="perf-metric-change positive">
+                    <i class="fa fa-arrow-up"></i>
+                    <span>+170.4%</span>
+                    <span class="perf-kpi-meta" style="margin-left: 8px;">LY: 307</span>
+                </div>
+            </div>
+
+            <!-- Freight Metric -->
+            <div class="perf-metric-card mb-md">
+                <div class="perf-metric-label">Freight</div>
+                <div class="perf-metric-value">$64.9K</div>
+                <div class="perf-metric-change positive">
+                    <i class="fa fa-arrow-up"></i>
+                    <span>+189.8%</span>
+                    <span class="perf-kpi-meta" style="margin-left: 8px;">LY: $22.4K</span>
+                </div>
+            </div>
+
+            <!-- Order Qty Metric -->
+            <div class="perf-metric-card mb-md">
+                <div class="perf-metric-label">Order Qty</div>
+                <div class="perf-metric-value">51.3K</div>
+                <div class="perf-metric-change positive">
+                    <i class="fa fa-arrow-up"></i>
+                    <span>+157.1%</span>
+                    <span class="perf-kpi-meta" style="margin-left: 8px;">LY: 20.0K</span>
+                </div>
+            </div>
+
+            <!-- Revenue Metric -->
+            <div class="perf-metric-card">
+                <div class="perf-metric-label">Revenue</div>
+                <div class="perf-metric-value">$6.4M</div>
+                <div class="perf-metric-change positive">
+                    <i class="fa fa-arrow-up"></i>
+                    <span>+157.8%</span>
+                    <span class="perf-kpi-meta" style="margin-left: 8px;">LY: $2.5M</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Trend Chart -->
+        <div class="perf-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Revenue Trend</div>
+                    <div class="perf-chart-subtitle">Current vs Last Year</div>
+                </div>
+            </div>
+            <div id="revenue-trend-chart" class="perf-revenue-chart"></div>
+        </div>
+
+        <!-- Location Map -->
+        <div class="perf-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Location</div>
+                    <div class="perf-chart-subtitle">by Revenue</div>
+                </div>
+            </div>
+            <div id="location-map" class="perf-map-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- Third Row - Customer and Product Analysis -->
+    <div class="perf-grid-2col">
+        <!-- Customer Top 5 -->
+        <div class="perf-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Customer [Top 5]</div>
+                    <div class="perf-chart-subtitle">by Revenue (Current vs last year)</div>
+                </div>
+            </div>
+            <div id="customer-top5-chart"></div>
+        </div>
+
+        <!-- Product Category Top 5 -->
+        <div class="perf-chart-card">
+            <div class="perf-chart-header">
+                <div>
+                    <div class="perf-chart-title">Product Category [Top 5]</div>
+                    <div class="perf-chart-subtitle">by Revenue (Current vs last year)</div>
+                </div>
+            </div>
+            <div id="product-category-chart"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- JavaScript Initialization -->
+<script>
+// This script should be placed in Page Properties > JavaScript > Execute when Page Loads
+// Or in a separate JS file referenced in the page
+
+(function() {
+    'use strict';
+
+    // Initialize all charts when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initializePerformanceDashboard();
+    });
+
+    function initializePerformanceDashboard() {
+        // Check if ApexCharts is loaded
+        if (typeof ApexCharts === 'undefined') {
+            console.error('ApexCharts library not loaded');
+            return;
+        }
+
+        // Initialize all charts
+        renderDefectDonutChart();
+        renderSupplierDefectsChart();
+        renderRevenueTrendChart();
+        renderCustomerTop5Chart();
+        renderProductCategoryChart();
+        renderLocationMap();
+    }
+
+    // Defect Rates Donut Chart
+    function renderDefectDonutChart() {
+        var options = {
+            chart: {
+                type: 'donut',
+                height: 200,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            series: [32, 28, 25, 15],
+            labels: ['Inspection A', 'Inspection B', 'Inspection C', 'Inspection D'],
+            colors: ['#a78bfa', '#22d3ee', '#10b981', '#f59e0b'],
+            legend: {
+                show: true,
+                position: 'right',
+                labels: { colors: '#a0a0a0' }
+            },
+            dataLabels: {
+                enabled: true,
+                style: { colors: ['#fff'] }
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '65%',
+                        labels: {
+                            show: false
+                        }
+                    }
+                }
+            },
+            stroke: {
+                show: false
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#defect-donut-chart"), options);
+        chart.render();
+    }
+
+    // Supplier Defects Horizontal Bar Chart (Custom HTML)
+    function renderSupplierDefectsChart() {
+        var data = [
+            { label: 'Supplier E', value: 24, percent: 80 },
+            { label: 'Supplier D', value: 26, percent: 87 },
+            { label: 'Supplier C', value: 29, percent: 97 },
+            { label: 'Supplier B', value: 31, percent: 100 },
+            { label: 'Supplier A', value: 32, percent: 100 }
+        ];
+
+        var container = document.getElementById('supplier-defects-chart');
+        var html = '';
+
+        data.forEach(function(item) {
+            html += '<div class="perf-hbar-item">';
+            html += '  <div class="perf-hbar-label">' + item.label + '</div>';
+            html += '  <div class="perf-hbar-container">';
+            html += '    <div class="perf-hbar-bg">';
+            html += '      <div class="perf-hbar-fill" style="width: ' + item.percent + '%"></div>';
+            html += '      <div class="perf-hbar-value">' + item.value + '</div>';
+            html += '    </div>';
+            html += '  </div>';
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Revenue Trend Chart
+    function renderRevenueTrendChart() {
+        var options = {
+            chart: {
+                type: 'bar',
+                height: 280,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            series: [{
+                name: 'Revenue',
+                data: [0.8, 0.5, 0.6, 0.9, 0.5, 0.4, 0.5, 0.4, 0.8, 0.9, 0.7, 1.0]
+            }, {
+                name: 'Last Year',
+                data: [0.3, 0.4, 0.5, 0.3, 0.4, 0.5, 0.4, 0.5, 0.3, 0.4, 0.6, 0.5]
+            }],
+            xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                labels: { style: { colors: '#a0a0a0' } }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: '#a0a0a0' },
+                    formatter: function(val) {
+                        return '$' + val + 'M';
+                    }
+                }
+            },
+            colors: ['#a78bfa', '#666666'],
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    columnWidth: '60%'
+                }
+            },
+            dataLabels: { enabled: false },
+            legend: {
+                show: true,
+                labels: { colors: '#a0a0a0' }
+            },
+            grid: {
+                borderColor: '#2a2a2a',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#revenue-trend-chart"), options);
+        chart.render();
+    }
+
+    // Customer Top 5 Horizontal Bar Chart
+    function renderCustomerTop5Chart() {
+        var options = {
+            chart: {
+                type: 'bar',
+                height: 280,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            series: [{
+                name: 'Revenue',
+                data: [817, 572, 502, 214, 190]
+            }],
+            xaxis: {
+                categories: ['Save-a-lot Markets', 'Ernst Handel', 'QUICK-Stop', 'Hungry Owl All-Night Grocers', 'Frankenversand'],
+                labels: { style: { colors: '#a0a0a0' } }
+            },
+            yaxis: {
+                labels: { style: { colors: '#a0a0a0' } }
+            },
+            colors: ['#a78bfa'],
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 4,
+                    barHeight: '70%'
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                style: { colors: ['#fff'] },
+                formatter: function(val) {
+                    return '$' + val;
+                }
+            },
+            grid: {
+                borderColor: '#2a2a2a',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#customer-top5-chart"), options);
+        chart.render();
+    }
+
+    // Product Category Chart
+    function renderProductCategoryChart() {
+        var options = {
+            chart: {
+                type: 'bar',
+                height: 280,
+                background: 'transparent',
+                toolbar: { show: false }
+            },
+            series: [{
+                name: 'Revenue',
+                data: [1174, 1144, 984, 217, 129]
+            }],
+            xaxis: {
+                categories: ['Beverages', 'Dairy Products', 'Confections', 'Seafood', 'Condiments'],
+                labels: { style: { colors: '#a0a0a0' } }
+            },
+            yaxis: {
+                labels: { style: { colors: '#a0a0a0' } }
+            },
+            colors: ['#a78bfa'],
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 4,
+                    barHeight: '70%'
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                style: { colors: ['#fff'] },
+                formatter: function(val) {
+                    return '$' + val;
+                }
+            },
+            grid: {
+                borderColor: '#2a2a2a',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#product-category-chart"), options);
+        chart.render();
+    }
+
+    // Location Map (Placeholder - requires Leaflet.js or similar)
+    function renderLocationMap() {
+        var container = document.getElementById('location-map');
+        if (!container) return;
+
+        // Simple placeholder - replace with actual map implementation
+        container.innerHTML = '<div class="perf-empty"><i class="fa fa-globe"></i><div>Map visualization requires Leaflet.js integration</div></div>';
+
+        // For actual implementation, use Leaflet.js as shown in dashboard.js renderLeafletMap function
+    }
+
+    // Expose functions for button clicks
+    window.createNewDashboard = function() {
+        console.log('Create new dashboard');
+        // Implement your logic here
+    };
+
+    window.shareDashboard = function() {
+        console.log('Share dashboard');
+        // Implement your logic here
+    };
+
+    window.presentDashboard = function() {
+        console.log('Present dashboard');
+        // Implement your logic here
+    };
+
+    window.refreshDashboard = function() {
+        console.log('Refresh dashboard');
+        location.reload();
+    };
+
+})();
+</script>

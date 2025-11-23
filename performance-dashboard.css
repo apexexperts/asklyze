@@ -1,0 +1,491 @@
+/* =========================================
+   PERFORMANCE OVERVIEW DASHBOARD - DARK THEME
+   Oracle APEX Custom Styling
+   ========================================= */
+
+/* Root Variables */
+:root {
+  --dashboard-bg: #0a0a0a;
+  --card-bg: #1a1a1a;
+  --card-border: #2a2a2a;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --accent-purple: #a78bfa;
+  --accent-cyan: #22d3ee;
+  --accent-green: #10b981;
+  --hover-bg: #252525;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Global Dashboard Container */
+.performance-dashboard {
+  background-color: var(--dashboard-bg);
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: var(--text-primary);
+}
+
+/* Header Section */
+.perf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 16px;
+}
+
+.perf-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.perf-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.perf-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.perf-btn {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.perf-btn:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--accent-purple);
+}
+
+.perf-btn i {
+  font-size: 16px;
+}
+
+/* Grid Layout System */
+.perf-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Top Row - KPI Metrics */
+.perf-grid-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* KPI Card Styling */
+.perf-kpi-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.perf-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-purple);
+}
+
+.perf-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.perf-kpi-card:hover::before {
+  opacity: 1;
+}
+
+.perf-kpi-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.perf-kpi-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.perf-kpi-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* Chart Card Styling */
+.perf-chart-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.perf-chart-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.perf-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.perf-chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.perf-chart-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Mixed KPI + Chart Cards */
+.perf-kpi-chart-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Small Metric Cards (Shipment, Freight, etc.) */
+.perf-metric-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.perf-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.perf-metric-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.perf-metric-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.perf-metric-change {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.perf-metric-change.positive {
+  color: var(--accent-green);
+}
+
+.perf-metric-change.negative {
+  color: #ef4444;
+}
+
+.perf-metric-change i {
+  font-size: 12px;
+}
+
+/* Grid Layouts for Different Sections */
+.perf-grid-3col {
+  display: grid;
+  grid-template-columns: 300px 1fr 1fr;
+  gap: 16px;
+}
+
+.perf-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Donut Chart Wrapper */
+.perf-donut-wrapper {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Horizontal Bar Chart Styling */
+.perf-hbar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.perf-hbar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perf-hbar-label {
+  min-width: 120px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.perf-hbar-container {
+  flex: 1;
+  position: relative;
+}
+
+.perf-hbar-bg {
+  background-color: rgba(167, 139, 250, 0.1);
+  border-radius: 4px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.perf-hbar-fill {
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.perf-hbar-value {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Map Container */
+.perf-map-container {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 320px;
+}
+
+.perf-map-wrapper {
+  width: 100%;
+  height: 280px;
+  border-radius: 8px;
+  overflow: hidden;
+  filter: grayscale(30%) brightness(0.8);
+}
+
+/* Revenue Trend Chart */
+.perf-revenue-chart {
+  min-height: 280px;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .perf-grid-3col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .perf-grid-top {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .perf-grid-3col,
+  .perf-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .performance-dashboard {
+    padding: 16px;
+  }
+
+  .perf-header h1 {
+    font-size: 24px;
+  }
+
+  .perf-grid-top {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .perf-kpi-value {
+    font-size: 28px;
+  }
+
+  .perf-metric-value {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .perf-grid-top {
+    grid-template-columns: 1fr;
+  }
+
+  .perf-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ApexCharts Dark Theme Overrides */
+.apexcharts-tooltip {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.apexcharts-tooltip-title {
+  background: var(--hover-bg) !important;
+  border-bottom: 1px solid var(--card-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.apexcharts-legend-text {
+  color: var(--text-secondary) !important;
+}
+
+.apexcharts-xaxis-label,
+.apexcharts-yaxis-label {
+  fill: var(--text-secondary) !important;
+}
+
+.apexcharts-gridline {
+  stroke: var(--card-border) !important;
+}
+
+/* Loading States */
+.perf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+}
+
+.perf-spinner {
+  border: 3px solid var(--card-border);
+  border-top: 3px solid var(--accent-purple);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error States */
+.perf-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+/* Empty States */
+.perf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-muted);
+  gap: 8px;
+}
+
+.perf-empty i {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+/* Utility Classes */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gap-sm { gap: 8px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 16px; }
+.mb-lg { margin-bottom: 24px; }
