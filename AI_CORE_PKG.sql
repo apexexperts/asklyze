@@ -1538,23 +1538,23 @@ BEGIN
         p_result_json := '{"status":"error","message":"No charts in dashboard"}';
         RETURN;
     END IF;
-    
+
     l_charts_arr := l_config_obj.get_array('charts');
-    
+
     -- Validate chart index (0-based)
     IF p_chart_index < 0 OR p_chart_index >= l_charts_arr.get_size THEN
         p_result_json := '{"status":"error","message":"Invalid chart index: ' || p_chart_index || '"}';
         RETURN;
     END IF;
-    
+
     -- Get the specific chart
     l_chart_obj := JSON_OBJECT_T(l_charts_arr.get(p_chart_index));
-    
+
     -- Update SQL if provided
     IF p_new_sql IS NOT NULL AND DBMS_LOB.GETLENGTH(p_new_sql) > 0 THEN
         l_sql := CLEAN_AI_SQL(p_new_sql);
         l_chart_obj.put('sql', l_sql);
-        
+
         -- Test the SQL by executing it
         BEGIN
             l_data := EXECUTE_SQL_TO_JSON(l_sql);
@@ -1563,21 +1563,33 @@ BEGIN
             RETURN;
         END;
     END IF;
-    
+
     -- Update chart type if provided
     IF p_chart_type IS NOT NULL THEN
         l_chart_obj.put('chart_type', LOWER(p_chart_type));
     END IF;
-    
+
     -- Update title if provided
     IF p_chart_title IS NOT NULL THEN
         l_chart_obj.put('title', p_chart_title);
     END IF;
-    
-    -- Replace the chart in array
-    l_charts_arr.put(p_chart_index, l_chart_obj);
-    
-    -- Update config object
+
+    -- Rebuild the charts array to avoid duplication issues with put()
+    DECLARE
+        l_new_charts_arr JSON_ARRAY_T := JSON_ARRAY_T();
+        l_arr_size PLS_INTEGER := l_charts_arr.get_size;
+    BEGIN
+        FOR i IN 0 .. l_arr_size - 1 LOOP
+            IF i = p_chart_index THEN
+                l_new_charts_arr.append(l_chart_obj);
+            ELSE
+                l_new_charts_arr.append(l_charts_arr.get(i));
+            END IF;
+        END LOOP;
+        l_charts_arr := l_new_charts_arr;
+    END;
+
+    -- Update config object with rebuilt array
     l_config_obj.put('charts', l_charts_arr);
     
     -- Convert back to CLOB
