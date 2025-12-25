@@ -14,7 +14,6 @@ create or replace PACKAGE AI_UI_PKG AS
 END AI_UI_PKG;
 /
 
-
 create or replace PACKAGE BODY AI_UI_PKG AS
 
     -- Helper to output JavaScript || operator safely
@@ -77,7 +76,21 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<style>');
         
         -- Main Container
+
         htp.p('#' || l_id || '.apex-ai-container { font-family: "Segoe UI", Roboto, sans-serif; background: #f5f7fa; height: 85vh; position: relative;  overflow: hidden; display: flex; flex-direction: row; border: 1px solid #e0e4e8; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }');
+
+
+        -- Sidebar
+        htp.p('#' || l_id || ' .rw-sidebar { width: var(--rw-sidebar-width); min-width: 320px; max-width: 600px; height: 100%; background: var(--rw-bg-primary); border-right: 1px solid var(--rw-border-subtle); display: flex; flex-direction: column; }');
+        htp.p('#' || l_id || ' .rw-sidebar-header { height: var(--rw-header-height); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--rw-border-subtle); background: var(--rw-bg-primary); flex-shrink: 0; }');
+        htp.p('#' || l_id || ' .rw-logo { display: flex; align-items: center; gap: 12px; }');
+        htp.p('#' || l_id || ' .rw-logo-icon { width: 36px; height: 36px; background: var(--rw-accent-gradient); border-radius: var(--rw-radius-md); display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; box-shadow: var(--rw-shadow-sm); }');
+        htp.p('#' || l_id || ' .rw-logo-text { font-size: 18px; font-weight: 600; color: var(--rw-text-primary); }');
+        htp.p('#' || l_id || ' .rw-logo-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; background: var(--rw-accent-light); color: var(--rw-accent-primary); border-radius: 9999px; text-transform: uppercase; }');
+        htp.p('#' || l_id || ' .rw-header-actions { display: flex; gap: 4px; }');
+        htp.p('#' || l_id || ' .rw-icon-btn { width: 36px; height: 36px; border: none; background: transparent; color: var(--rw-text-tertiary); border-radius: var(--rw-radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }');
+        htp.p('#' || l_id || ' .rw-icon-btn:hover { background: var(--rw-bg-hover); color: var(--rw-text-primary); }');
+        htp.p('#' || l_id || ' .rw-icon-btn svg { width: 18px; height: 18px; }');
 
         -- Sidebar Styles
         htp.p('.aid-sidebar { width: 280px; min-width: 280px; background: linear-gradient(180deg, #1d4cd2 0%, #1d4bd1 100%); display: flex; flex-direction: column; transition: all 0.3s ease; border-right: 1px solid #2d3a4a; height: 100%; }');
