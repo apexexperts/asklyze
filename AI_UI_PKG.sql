@@ -1808,11 +1808,8 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         gridEl.classList.add("grid-stack");
     }
     this.layoutInitializing = true;
-    if(this.grid) {
-        try { this.grid.destroy(false); } catch(e) {}
-        this.grid = null;
-    }
-    gridEl.innerHTML = "";
+
+    // Dispose ECharts BEFORE destroying grid (while DOM still exists)
     if(this.dashboardCharts) {
         Object.keys(this.dashboardCharts).forEach(function(k) {
             if(self.dashboardCharts[k]) {
@@ -1821,6 +1818,18 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         });
     }
     this.dashboardCharts = {};
+
+    // Destroy grid with removeElements=true to fully clean up
+    if(this.grid) {
+        try { this.grid.destroy(true); } catch(e) {}
+        this.grid = null;
+    }
+
+    // Clear any remaining content and reset GridStack attributes
+    gridEl.innerHTML = "";
+    gridEl.removeAttribute("gs-current-row");
+    gridEl.removeAttribute("gs-column");
+
     this.currentDashboardCharts = charts;
     var layoutBucketsByBase = {};
     if(savedLayout && savedLayout.forEach) {
