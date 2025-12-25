@@ -14,6 +14,7 @@ create or replace PACKAGE AI_UI_PKG AS
 END AI_UI_PKG;
 /
 
+
 create or replace PACKAGE BODY AI_UI_PKG AS
 
     -- Helper to output JavaScript || operator safely
