@@ -2400,16 +2400,17 @@ RULES:
     -- ============================================================
     -- Data Execution & Renderer
     -- ============================================================
-PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS 
+PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         l_sql CLOB; l_chart_config CLOB; l_chart_config_v2 CLOB; l_data_profile CLOB; l_viz_type VARCHAR2(50);
         l_kpis CLOB; l_processed_kpis CLOB; l_report_title VARCHAR2(4000); l_query_type VARCHAR2(20);
         l_user_question VARCHAR2(4000);
+        l_saved_chart_type VARCHAR2(50);
         l_cursor_id INTEGER; l_rows_processed INTEGER; l_col_cnt INTEGER; l_desc DBMS_SQL.DESC_TAB;
         l_varchar_val VARCHAR2(32767); l_number_val NUMBER; l_date_val DATE;
         l_result CLOB; l_data_started BOOLEAN := FALSE;
         l_row_count NUMBER := 0;
         l_max_rows NUMBER := 5000; -- HARD LIMIT TO PREVENT CRASH
-        
+
         -- NEW: Pivot variables
         l_pivot_analysis CLOB;
         l_pivot_recommended BOOLEAN := FALSE;
@@ -2428,16 +2429,18 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         END IF;
         
         BEGIN
-            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, 
-                   CHART_CONFIG_V2, DATA_PROFILE, VISUALIZATION_TYPE, USER_QUESTION
-            INTO l_sql, l_chart_config, l_kpis, l_report_title, 
-                 l_chart_config_v2, l_data_profile, l_viz_type, l_user_question
+            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE,
+                   CHART_CONFIG_V2, DATA_PROFILE, VISUALIZATION_TYPE, USER_QUESTION, SAVED_CHART_TYPE
+            INTO l_sql, l_chart_config, l_kpis, l_report_title,
+                 l_chart_config_v2, l_data_profile, l_viz_type, l_user_question, l_saved_chart_type
             FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
         EXCEPTION WHEN OTHERS THEN
-            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, USER_QUESTION
-            INTO l_sql, l_chart_config, l_kpis, l_report_title, l_user_question
-            FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
-            l_chart_config_v2 := l_chart_config; l_data_profile := '{}'; l_viz_type := 'CUSTOM';
+            BEGIN
+                SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, USER_QUESTION
+                INTO l_sql, l_chart_config, l_kpis, l_report_title, l_user_question
+                FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
+                l_chart_config_v2 := l_chart_config; l_data_profile := '{}'; l_viz_type := 'CUSTOM'; l_saved_chart_type := NULL;
+            END;
         END;
         
         l_processed_kpis := PROCESS_KPIS(l_kpis);
@@ -2446,6 +2449,9 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         DBMS_LOB.APPEND(l_result, ',"query_type":"REPORT"');
         DBMS_LOB.APPEND(l_result, ',"report_title":"' || SAFE_JSON_ESCAPE(NVL(l_report_title, 'Analysis Report')) || '"');
         DBMS_LOB.APPEND(l_result, ',"visualization_type":"' || SAFE_JSON_ESCAPE(NVL(l_viz_type, 'CUSTOM')) || '"');
+        IF l_saved_chart_type IS NOT NULL THEN
+            DBMS_LOB.APPEND(l_result, ',"saved_chart_type":"' || SAFE_JSON_ESCAPE(l_saved_chart_type) || '"');
+        END IF;
         DBMS_LOB.APPEND(l_result, ',"generated_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
         
         -- Safe Append for Configs
