@@ -509,7 +509,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('#chart_container_' || l_id || ' { width: 100%; height: 100%; min-height: 400px; flex: 1; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }');
 
         -- Chart View Layout with Type Selector
-        htp.p('.ai-chart-view-wrapper { display: flex; gap: 20px; flex-direction: row !important; }');
+        htp.p('.ai-chart-view-wrapper.active { flex-direction: row !important; gap: 20px; }');
         htp.p('.ai-chart-main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }');
         htp.p('.ai-chart-type-panel { width: 280px; flex-shrink: 0; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-y: auto; max-height: 100%; }');
         htp.p('.ai-chart-type-panel-header { margin-bottom: 16px; }');
