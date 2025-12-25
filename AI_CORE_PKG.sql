@@ -382,12 +382,12 @@ INSTRUCTIONS:
 2. Select ONLY the tables needed to answer this specific question
 3. Consider relationships - if you need to join tables, include all required tables
 4. Maximum ' || p_max_tables || ' tables
-5. Return ONLY a JSON array of table names, nothing else
+5. Return ONLY a JSON object with tables array, nothing else
 
-RESPONSE FORMAT (strict JSON array):
-["TABLE1", "TABLE2", "TABLE3"]
+RESPONSE FORMAT (strict JSON object):
+{"tables": ["TABLE1", "TABLE2", "TABLE3"]}
 
-Return ONLY the JSON array, no explanation.');
+Return ONLY the JSON object, no explanation.');
 
         -- Get API key
         BEGIN
@@ -437,17 +437,52 @@ Return ONLY the JSON array, no explanation.');
             APEX_JSON.PARSE(l_response);
             DECLARE
                 l_text VARCHAR2(4000);
+                l_tables_json VARCHAR2(4000);
             BEGIN
                 l_text := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1);
                 -- Clean up response
                 l_text := REPLACE(REPLACE(l_text, '```json', ''), '```', '');
                 l_text := TRIM(l_text);
-                
-                -- Validate it's a JSON array
-                IF SUBSTR(l_text, 1, 1) = '[' THEN
+
+                -- Parse the JSON object to extract "tables" array
+                IF SUBSTR(l_text, 1, 1) = '{' THEN
+                    APEX_JSON.PARSE(l_text);
+                    l_tables_json := APEX_JSON.GET_VARCHAR2('tables');
+                    -- If tables key exists, extract the array
+                    IF l_tables_json IS NOT NULL THEN
+                        l_result := l_tables_json;
+                    ELSE
+                        -- Try to get as array directly from parsed content
+                        DECLARE
+                            l_arr_count NUMBER;
+                            l_arr_result CLOB;
+                            l_first_item BOOLEAN := TRUE;
+                        BEGIN
+                            l_arr_count := APEX_JSON.GET_COUNT('tables');
+                            IF l_arr_count > 0 THEN
+                                DBMS_LOB.CREATETEMPORARY(l_arr_result, TRUE);
+                                DBMS_LOB.APPEND(l_arr_result, '[');
+                                FOR i IN 1..l_arr_count LOOP
+                                    IF NOT l_first_item THEN
+                                        DBMS_LOB.APPEND(l_arr_result, ',');
+                                    END IF;
+                                    l_first_item := FALSE;
+                                    DBMS_LOB.APPEND(l_arr_result, '"' || APEX_JSON.GET_VARCHAR2('tables[%d]', i) || '"');
+                                END LOOP;
+                                DBMS_LOB.APPEND(l_arr_result, ']');
+                                l_result := l_arr_result;
+                            ELSE
+                                l_result := SMART_SELECT_TABLES_FALLBACK(l_schema_id, p_question, p_max_tables);
+                            END IF;
+                        EXCEPTION WHEN OTHERS THEN
+                            l_result := SMART_SELECT_TABLES_FALLBACK(l_schema_id, p_question, p_max_tables);
+                        END;
+                    END IF;
+                ELSIF SUBSTR(l_text, 1, 1) = '[' THEN
+                    -- Backward compatibility: if still returns array directly
                     l_result := l_text;
                 ELSE
-                    -- Fallback if response is not valid
+                    -- Fallback if response is not valid JSON
                     l_result := SMART_SELECT_TABLES_FALLBACK(l_schema_id, p_question, p_max_tables);
                 END IF;
             EXCEPTION WHEN OTHERS THEN
