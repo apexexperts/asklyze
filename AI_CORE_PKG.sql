@@ -277,6 +277,7 @@ create or replace PACKAGE AI_CORE_PKG AUTHID CURRENT_USER AS
 END AI_CORE_PKG;
 /
 
+
 create or replace PACKAGE BODY AI_CORE_PKG AS 
 
     -- ============================================================
@@ -4147,4 +4148,3 @@ FUNCTION CATALOG_SEARCH_TABLES(
 
 END AI_CORE_PKG;
 /
-
