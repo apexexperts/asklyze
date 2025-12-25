@@ -1819,16 +1819,17 @@ create or replace PACKAGE BODY AI_UI_PKG AS
     }
     this.dashboardCharts = {};
 
-    // Destroy grid with removeElements=true to fully clean up
+    // Remove all widgets from grid before destroying
     if(this.grid) {
-        try { this.grid.destroy(true); } catch(e) {}
+        try {
+            this.grid.removeAll(false);
+            this.grid.destroy(false);
+        } catch(e) {}
         this.grid = null;
     }
 
-    // Clear any remaining content and reset GridStack attributes
+    // Clear any remaining content
     gridEl.innerHTML = "";
-    gridEl.removeAttribute("gs-current-row");
-    gridEl.removeAttribute("gs-column");
 
     this.currentDashboardCharts = charts;
     var layoutBucketsByBase = {};
