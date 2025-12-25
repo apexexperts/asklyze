@@ -277,7 +277,6 @@ create or replace PACKAGE AI_CORE_PKG AUTHID CURRENT_USER AS
 END AI_CORE_PKG;
 /
 
-
 create or replace PACKAGE BODY AI_CORE_PKG AS 
 
     -- ============================================================
@@ -325,7 +324,7 @@ create or replace PACKAGE BODY AI_CORE_PKG AS
         l_result      CLOB;
         l_first       BOOLEAN := TRUE;
         l_api_key     VARCHAR2(1000);
-        l_model       VARCHAR2(100) := 'openai/gpt-oss-120b';  -- Groq fast model
+        l_model       VARCHAR2(100) := 'openai/gpt-oss-120b';  
         l_body        CLOB;
     BEGIN
         -- Get schema ID
@@ -411,7 +410,7 @@ Return ONLY the JSON array, no explanation.');
                 APEX_JSON.CLOSE_OBJECT;
             APEX_JSON.CLOSE_ARRAY;
             APEX_JSON.WRITE('temperature', 0.1);
-            APEX_JSON.WRITE('max_tokens', 200);
+            APEX_JSON.WRITE('max_tokens', 65536);
             APEX_JSON.OPEN_OBJECT('response_format');
                 APEX_JSON.WRITE('type', 'json_object');
             APEX_JSON.CLOSE_OBJECT;
@@ -1024,23 +1023,19 @@ Return ONLY the JSON array, no explanation.');
         DBMS_LOB.CREATETEMPORARY(l_prompt, TRUE);
         
         IF UPPER(p_mode) = 'DASHBOARD' THEN
-            DBMS_LOB.APPEND(l_prompt, 'Role: Expert BI Analyst. You have access to ONLY these tables and their relationships:' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, 'You are a BI analyst. Generate 4 catchy dashboard widget titles based on these tables:' || CHR(10));
             DBMS_LOB.APPEND(l_prompt, SUBSTR(l_context, 1, 6000));
-            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Task: Generate 4 catchy titles for Dashboard Widgets (Charts/KPIs) based ONLY on the tables above. ');
-            DBMS_LOB.APPEND(l_prompt, 'IMPORTANT: Only reference tables and columns that exist in the schema above. Do NOT hallucinate or invent tables/columns. ');
-            DBMS_LOB.APPEND(l_prompt, 'Style Guide: ');
-            DBMS_LOB.APPEND(l_prompt, '1. Aggregates: "Total Revenue", "Avg Salary", "Active Users Count". ');
-            DBMS_LOB.APPEND(l_prompt, '2. Breakdowns: "Sales by City", "Employees by Dept". ');
-            DBMS_LOB.APPEND(l_prompt, '3. Trends: "Monthly Hiring Trend", "Yearly Growth". ');
-            DBMS_LOB.APPEND(l_prompt, 'NEGATIVE CONSTRAINTS: Do NOT use words like "List", "Show", "Find", "Search", "Details". ');
-            DBMS_LOB.APPEND(l_prompt, 'Output: JSON Array of strings only. No Markdown.');
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || CHR(10) || 'Examples: "Total Revenue", "Sales by Region", "Monthly Growth Trend", "Active Customers"' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Return ONLY a JSON array like this example:' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, '["Total Revenue", "Sales by Region", "Monthly Growth", "Top Products"]' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Your response must be ONLY the JSON array, nothing else:');
         ELSE
-            DBMS_LOB.APPEND(l_prompt, 'Role: Data Analyst. You have access to ONLY these tables and their relationships:' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, 'You are a data analyst. Generate 4 natural language questions based on these tables:' || CHR(10));
             DBMS_LOB.APPEND(l_prompt, SUBSTR(l_context, 1, 6000));
-            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Task: Generate 4 natural language queries for a detailed data report based ONLY on the tables above. ');
-            DBMS_LOB.APPEND(l_prompt, 'IMPORTANT: Only reference tables and columns that exist in the schema above. Do NOT hallucinate or invent tables/columns. ');
-            DBMS_LOB.APPEND(l_prompt, 'Style: "List high value customers", "Show transactions for 2024", "Employees in IT dept". ');
-            DBMS_LOB.APPEND(l_prompt, 'Output: JSON Array of strings only. No Markdown.');
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || CHR(10) || 'Examples: "Show all customers", "List top 10 sales", "Employees hired in 2024"' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Return ONLY a JSON array like this example:' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, '["Show all customers", "List top sales", "Recent orders", "Department summary"]' || CHR(10));
+            DBMS_LOB.APPEND(l_prompt, CHR(10) || 'Your response must be ONLY the JSON array, nothing else:');
         END IF;
         
         APEX_JSON.INITIALIZE_CLOB_OUTPUT;
@@ -1053,9 +1048,6 @@ Return ONLY the JSON array, no explanation.');
         APEX_JSON.CLOSE_OBJECT;
         APEX_JSON.CLOSE_ARRAY;
         APEX_JSON.WRITE('temperature', 0.4);
-        APEX_JSON.OPEN_OBJECT('response_format');
-        APEX_JSON.WRITE('type', 'json_object');
-        APEX_JSON.CLOSE_OBJECT;
         APEX_JSON.CLOSE_OBJECT;
         l_body := APEX_JSON.GET_CLOB_OUTPUT;
         APEX_JSON.FREE_OUTPUT;
@@ -3328,7 +3320,7 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
       p_err_msg    OUT VARCHAR2
   ) IS
     l_key   VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
-    l_model VARCHAR2(100)  := 'gemini-2.5-flash-lite';
+    l_model VARCHAR2(100)  := 'openai/gpt-oss-120b';
     l_body  CLOB;
     l_resp  CLOB;
     l_txt   CLOB;
@@ -3351,7 +3343,7 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         APEX_JSON.CLOSE_OBJECT;
       APEX_JSON.CLOSE_ARRAY;
       APEX_JSON.WRITE('temperature', 0.3);
-      APEX_JSON.WRITE('max_tokens', 700);
+      APEX_JSON.WRITE('max_tokens', 65536);
       APEX_JSON.OPEN_OBJECT('response_format');
         APEX_JSON.WRITE('type', 'json_object');
       APEX_JSON.CLOSE_OBJECT;
@@ -4138,3 +4130,5 @@ FUNCTION CATALOG_SEARCH_TABLES(
 
 END AI_CORE_PKG;
 /
+
+
