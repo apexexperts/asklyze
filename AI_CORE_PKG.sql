@@ -325,7 +325,7 @@ create or replace PACKAGE BODY AI_CORE_PKG AS
         l_result      CLOB;
         l_first       BOOLEAN := TRUE;
         l_api_key     VARCHAR2(1000);
-        l_model       VARCHAR2(100) := 'gemini-2.0-flash';  -- Fast & cheap model for routing
+        l_model       VARCHAR2(100) := 'openai/gpt-oss-120b';  -- Groq fast model
         l_body        CLOB;
     BEGIN
         -- Get schema ID
@@ -393,29 +393,27 @@ Return ONLY the JSON array, no explanation.');
         -- Get API key
         BEGIN
             SELECT DBMS_LOB.SUBSTR(SETTING_VALUE, 1000, 1) INTO l_api_key
-            FROM ASKLYZE_AI_SETTINGS 
-            WHERE SETTING_KEY = 'GEMINI_API_KEY';
+            FROM ASKLYZE_AI_SETTINGS
+            WHERE SETTING_KEY = 'GROQ_API_KEY';
         EXCEPTION WHEN NO_DATA_FOUND THEN
             -- Fallback: return all tables if no API key
             RETURN SMART_SELECT_TABLES_FALLBACK(l_schema_id, p_question, p_max_tables);
         END;
         
-        -- Call AI for routing (using flash model - fast & cheap)
+        -- Call AI for routing (using Groq model - fast inference)
         APEX_JSON.INITIALIZE_CLOB_OUTPUT;
         APEX_JSON.OPEN_OBJECT;
-            APEX_JSON.OPEN_ARRAY('contents');
+            APEX_JSON.WRITE('model', l_model);
+            APEX_JSON.OPEN_ARRAY('messages');
                 APEX_JSON.OPEN_OBJECT;
-                    APEX_JSON.OPEN_ARRAY('parts');
-                        APEX_JSON.OPEN_OBJECT;
-                            APEX_JSON.WRITE('text', l_prompt);
-                        APEX_JSON.CLOSE_OBJECT;
-                    APEX_JSON.CLOSE_ARRAY;
+                    APEX_JSON.WRITE('role', 'user');
+                    APEX_JSON.WRITE('content', l_prompt);
                 APEX_JSON.CLOSE_OBJECT;
             APEX_JSON.CLOSE_ARRAY;
-            APEX_JSON.OPEN_OBJECT('generationConfig');
-                APEX_JSON.WRITE('responseMimeType', 'application/json');
-                APEX_JSON.WRITE('temperature', 0.1);
-                APEX_JSON.WRITE('maxOutputTokens', 200);
+            APEX_JSON.WRITE('temperature', 0.1);
+            APEX_JSON.WRITE('max_tokens', 200);
+            APEX_JSON.OPEN_OBJECT('response_format');
+                APEX_JSON.WRITE('type', 'json_object');
             APEX_JSON.CLOSE_OBJECT;
         APEX_JSON.CLOSE_OBJECT;
         l_body := APEX_JSON.GET_CLOB_OUTPUT;
@@ -425,11 +423,11 @@ Return ONLY the JSON array, no explanation.');
         apex_web_service.g_request_headers.DELETE;
         apex_web_service.g_request_headers(1).name  := 'Content-Type';
         apex_web_service.g_request_headers(1).value := 'application/json';
-        apex_web_service.g_request_headers(2).name  := 'x-goog-api-key';
-        apex_web_service.g_request_headers(2).value := l_api_key;
+        apex_web_service.g_request_headers(2).name  := 'Authorization';
+        apex_web_service.g_request_headers(2).value := 'Bearer ' || l_api_key;
         
         l_response := apex_web_service.make_rest_request(
-            p_url              => 'https://generativelanguage.googleapis.com/v1beta/models/' || l_model || ':generateContent',
+            p_url              => 'https://api.groq.com/openai/v1/chat/completions',
             p_http_method      => 'POST',
             p_body             => l_body,
             p_transfer_timeout => 15
@@ -441,7 +439,7 @@ Return ONLY the JSON array, no explanation.');
             DECLARE
                 l_text VARCHAR2(4000);
             BEGIN
-                l_text := APEX_JSON.GET_VARCHAR2('candidates[%d].content.parts[%d].text', 1, 1);
+                l_text := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1);
                 -- Clean up response
                 l_text := REPLACE(REPLACE(l_text, '```json', ''), '```', '');
                 l_text := TRIM(l_text);
@@ -1004,8 +1002,8 @@ Return ONLY the JSON array, no explanation.');
         l_body CLOB; 
         l_resp CLOB; 
         l_txt CLOB; 
-        l_key VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GEMINI_API_KEY'), 1000, 1); 
-        l_model VARCHAR2(100) := 'gemini-2.5-flash-lite';
+        l_key VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1); 
+        l_model VARCHAR2(100) := 'openai/gpt-oss-120b';
         l_prompt CLOB;
         l_target VARCHAR2(128) := UPPER(NVL(p_schema_name, NVL(apex_application.g_flow_owner, USER)));
     BEGIN 
@@ -1045,34 +1043,32 @@ Return ONLY the JSON array, no explanation.');
             DBMS_LOB.APPEND(l_prompt, 'Output: JSON Array of strings only. No Markdown.');
         END IF;
         
-        APEX_JSON.INITIALIZE_CLOB_OUTPUT; 
-        APEX_JSON.OPEN_OBJECT;  
-        APEX_JSON.OPEN_ARRAY('contents'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.OPEN_ARRAY('parts'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.WRITE('text', l_prompt); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.OPEN_OBJECT('generationConfig'); 
-        APEX_JSON.WRITE('responseMimeType', 'application/json');
-        APEX_JSON.WRITE('temperature', 0.4); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_OBJECT; 
-        l_body := APEX_JSON.GET_CLOB_OUTPUT; 
+        APEX_JSON.INITIALIZE_CLOB_OUTPUT;
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('model', l_model);
+        APEX_JSON.OPEN_ARRAY('messages');
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('role', 'user');
+        APEX_JSON.WRITE('content', l_prompt);
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_ARRAY;
+        APEX_JSON.WRITE('temperature', 0.4);
+        APEX_JSON.OPEN_OBJECT('response_format');
+        APEX_JSON.WRITE('type', 'json_object');
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_OBJECT;
+        l_body := APEX_JSON.GET_CLOB_OUTPUT;
         APEX_JSON.FREE_OUTPUT;
         DBMS_LOB.FREETEMPORARY(l_prompt);
 
         apex_web_service.g_request_headers.DELETE; 
         apex_web_service.g_request_headers(1).name := 'Content-Type'; 
         apex_web_service.g_request_headers(1).value := 'application/json'; 
-        apex_web_service.g_request_headers(2).name := 'x-goog-api-key'; 
-        apex_web_service.g_request_headers(2).value := l_key; 
+        apex_web_service.g_request_headers(2).name := 'Authorization';
+        apex_web_service.g_request_headers(2).value := 'Bearer ' || l_key; 
         
         l_resp := apex_web_service.make_rest_request(
-            p_url => 'https://generativelanguage.googleapis.com/v1beta/models/' || l_model || ':generateContent', 
+            p_url => 'https://api.groq.com/openai/v1/chat/completions', 
             p_http_method => 'POST', 
             p_body => l_body,
             p_transfer_timeout => 8
@@ -1084,7 +1080,7 @@ Return ONLY the JSON array, no explanation.');
         END IF;
 
         APEX_JSON.PARSE(l_resp); 
-        l_txt := APEX_JSON.GET_VARCHAR2('candidates[%d].content.parts[%d].text', 1, 1); 
+        l_txt := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1); 
         l_txt := REPLACE(REPLACE(l_txt, '```json', ''), '```', '');
         
         p_suggestions := l_txt; 
@@ -1758,8 +1754,8 @@ END DELETE_DASHBOARD_CHART;
             RETURN;
         END IF;
 
-        l_key := DBMS_LOB.SUBSTR(GET_CONF('GEMINI_API_KEY'), 1000, 1); 
-        l_model := 'gemini-2.5-pro';
+        l_key := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
+        l_model := 'openai/gpt-oss-120b';
         
         -- GET ONLY WHITELISTED CONTEXT
         l_context := GET_SMART_CONTEXT(
@@ -1822,39 +1818,37 @@ RULES:
 
 ');
 
-        APEX_JSON.INITIALIZE_CLOB_OUTPUT; 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.OPEN_ARRAY('contents'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.OPEN_ARRAY('parts'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.WRITE('text', l_prompt); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.OPEN_OBJECT('generationConfig'); 
-        APEX_JSON.WRITE('responseMimeType', 'application/json'); 
-        APEX_JSON.WRITE('temperature', 0.3); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_OBJECT; 
-        l_body := APEX_JSON.GET_CLOB_OUTPUT; 
+        APEX_JSON.INITIALIZE_CLOB_OUTPUT;
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('model', l_model);
+        APEX_JSON.OPEN_ARRAY('messages');
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('role', 'user');
+        APEX_JSON.WRITE('content', l_prompt);
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_ARRAY;
+        APEX_JSON.WRITE('temperature', 0.3);
+        APEX_JSON.OPEN_OBJECT('response_format');
+        APEX_JSON.WRITE('type', 'json_object');
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_OBJECT;
+        l_body := APEX_JSON.GET_CLOB_OUTPUT;
         APEX_JSON.FREE_OUTPUT;
         DBMS_LOB.FREETEMPORARY(l_prompt);
 
         apex_web_service.g_request_headers.DELETE; 
         apex_web_service.g_request_headers(1).name := 'Content-Type'; 
         apex_web_service.g_request_headers(1).value := 'application/json'; 
-        apex_web_service.g_request_headers(2).name := 'x-goog-api-key'; 
-        apex_web_service.g_request_headers(2).value := l_key; 
+        apex_web_service.g_request_headers(2).name := 'Authorization';
+        apex_web_service.g_request_headers(2).value := 'Bearer ' || l_key; 
         l_resp := apex_web_service.make_rest_request(
-            p_url => 'https://generativelanguage.googleapis.com/v1beta/models/' || l_model || ':generateContent', 
+            p_url => 'https://api.groq.com/openai/v1/chat/completions', 
             p_http_method => 'POST', 
             p_body => l_body
         ); 
           
         APEX_JSON.PARSE(l_resp); 
-        l_txt := APEX_JSON.GET_VARCHAR2('candidates[%d].content.parts[%d].text', 1, 1); 
+        l_txt := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1); 
         
         IF l_txt IS NULL THEN 
             DECLARE
@@ -2170,8 +2164,8 @@ RULES:
             l_category_instruction := 'General data inquiry.'; 
         END IF;
 
-        l_key := DBMS_LOB.SUBSTR(GET_CONF('GEMINI_API_KEY'), 1000, 1); 
-        l_model := 'gemini-2.5-pro';
+        l_key := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
+        l_model := 'openai/gpt-oss-120b';
         
         -- GET ONLY WHITELISTED CONTEXT
         l_context := GET_SMART_CONTEXT(
@@ -2201,39 +2195,37 @@ RULES:
         DBMS_LOB.APPEND(l_prompt, '{"name": "Amount", "type": "line", "dataKey": "COL2", "yAxisIndex": 1, "color": "#..."}]}}');
         DBMS_LOB.APPEND(l_prompt, '"pivot_recommendation": {"recommended": true/false,"reason": "Why pivot is recommended or not","rows": ["COLUMN1", "COLUMN2"],"columns": ["DATE_COLUMN"],"measures": ["AMOUNT", "COUNT"]}');
 
-        APEX_JSON.INITIALIZE_CLOB_OUTPUT; 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.OPEN_ARRAY('contents'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.OPEN_ARRAY('parts'); 
-        APEX_JSON.OPEN_OBJECT; 
-        APEX_JSON.WRITE('text', l_prompt); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_ARRAY; 
-        APEX_JSON.OPEN_OBJECT('generationConfig'); 
-        APEX_JSON.WRITE('responseMimeType', 'application/json'); 
-        APEX_JSON.WRITE('temperature', 0.2); 
-        APEX_JSON.CLOSE_OBJECT; 
-        APEX_JSON.CLOSE_OBJECT; 
-        l_body := APEX_JSON.GET_CLOB_OUTPUT; 
+        APEX_JSON.INITIALIZE_CLOB_OUTPUT;
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('model', l_model);
+        APEX_JSON.OPEN_ARRAY('messages');
+        APEX_JSON.OPEN_OBJECT;
+        APEX_JSON.WRITE('role', 'user');
+        APEX_JSON.WRITE('content', l_prompt);
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_ARRAY;
+        APEX_JSON.WRITE('temperature', 0.2);
+        APEX_JSON.OPEN_OBJECT('response_format');
+        APEX_JSON.WRITE('type', 'json_object');
+        APEX_JSON.CLOSE_OBJECT;
+        APEX_JSON.CLOSE_OBJECT;
+        l_body := APEX_JSON.GET_CLOB_OUTPUT;
         APEX_JSON.FREE_OUTPUT;
         DBMS_LOB.FREETEMPORARY(l_prompt);
 
         apex_web_service.g_request_headers.DELETE; 
         apex_web_service.g_request_headers(1).name := 'Content-Type'; 
         apex_web_service.g_request_headers(1).value := 'application/json'; 
-        apex_web_service.g_request_headers(2).name := 'x-goog-api-key'; 
-        apex_web_service.g_request_headers(2).value := l_key; 
+        apex_web_service.g_request_headers(2).name := 'Authorization';
+        apex_web_service.g_request_headers(2).value := 'Bearer ' || l_key; 
         l_resp := apex_web_service.make_rest_request(
-            p_url => 'https://generativelanguage.googleapis.com/v1beta/models/' || l_model || ':generateContent', 
+            p_url => 'https://api.groq.com/openai/v1/chat/completions', 
             p_http_method => 'POST', 
             p_body => l_body
         ); 
           
         APEX_JSON.PARSE(l_resp); 
-        l_txt := APEX_JSON.GET_VARCHAR2('candidates[%d].content.parts[%d].text', 1, 1); 
+        l_txt := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1); 
         
         IF l_txt IS NULL THEN 
             DECLARE
@@ -3335,7 +3327,7 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
       p_json_out   OUT CLOB,
       p_err_msg    OUT VARCHAR2
   ) IS
-    l_key   VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GEMINI_API_KEY'), 1000, 1);
+    l_key   VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
     l_model VARCHAR2(100)  := 'gemini-2.5-flash-lite';
     l_body  CLOB;
     l_resp  CLOB;
@@ -3345,25 +3337,23 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
     p_err_msg  := NULL;
 
     IF l_key IS NULL THEN
-      p_err_msg := 'Missing GEMINI_API_KEY.';
+      p_err_msg := 'Missing GROQ_API_KEY.';
       RETURN;
     END IF;
 
     APEX_JSON.INITIALIZE_CLOB_OUTPUT;
     APEX_JSON.OPEN_OBJECT;
-      APEX_JSON.OPEN_ARRAY('contents');
+      APEX_JSON.WRITE('model', l_model);
+      APEX_JSON.OPEN_ARRAY('messages');
         APEX_JSON.OPEN_OBJECT;
-          APEX_JSON.OPEN_ARRAY('parts');
-            APEX_JSON.OPEN_OBJECT;
-              APEX_JSON.WRITE('text', p_prompt);
-            APEX_JSON.CLOSE_OBJECT;
-          APEX_JSON.CLOSE_ARRAY;
+          APEX_JSON.WRITE('role', 'user');
+          APEX_JSON.WRITE('content', p_prompt);
         APEX_JSON.CLOSE_OBJECT;
       APEX_JSON.CLOSE_ARRAY;
-      APEX_JSON.OPEN_OBJECT('generationConfig');
-        APEX_JSON.WRITE('responseMimeType', 'application/json');
-        APEX_JSON.WRITE('temperature', 0.3);
-        APEX_JSON.WRITE('maxOutputTokens', 700);
+      APEX_JSON.WRITE('temperature', 0.3);
+      APEX_JSON.WRITE('max_tokens', 700);
+      APEX_JSON.OPEN_OBJECT('response_format');
+        APEX_JSON.WRITE('type', 'json_object');
       APEX_JSON.CLOSE_OBJECT;
     APEX_JSON.CLOSE_OBJECT;
     l_body := APEX_JSON.GET_CLOB_OUTPUT;
@@ -3372,18 +3362,18 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
     apex_web_service.g_request_headers.DELETE;
     apex_web_service.g_request_headers(1).name  := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
-    apex_web_service.g_request_headers(2).name  := 'x-goog-api-key';
-    apex_web_service.g_request_headers(2).value := l_key;
+    apex_web_service.g_request_headers(2).name  := 'Authorization';
+    apex_web_service.g_request_headers(2).value := 'Bearer ' || l_key;
 
     l_resp := apex_web_service.make_rest_request(
-      p_url              => 'https://generativelanguage.googleapis.com/v1beta/models/' || l_model || ':generateContent',
+      p_url              => 'https://api.groq.com/openai/v1/chat/completions',
       p_http_method      => 'POST',
       p_body             => l_body,
       p_transfer_timeout => 25
     );
 
     IF apex_web_service.g_status_code != 200 THEN
-      p_err_msg := 'Gemini HTTP ' || apex_web_service.g_status_code;
+      p_err_msg := 'API HTTP ' || apex_web_service.g_status_code;
       RETURN;
     END IF;
 
@@ -3392,15 +3382,15 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
     DECLARE
       l_v VARCHAR2(32767);
     BEGIN
-      l_v := APEX_JSON.GET_VARCHAR2('candidates[%d].content.parts[%d].text', 1, 1);
+      l_v := APEX_JSON.GET_VARCHAR2('choices[%d].message.content', 1);
       IF l_v IS NULL THEN
-        p_err_msg := 'Gemini returned empty text.';
+        p_err_msg := 'API returned empty text.';
         RETURN;
       END IF;
       l_txt := l_v;
     EXCEPTION
       WHEN OTHERS THEN
-        p_err_msg := 'Failed to read Gemini response: ' || SUBSTR(SQLERRM,1,4000);
+        p_err_msg := 'Failed to read API response: ' || SUBSTR(SQLERRM,1,4000);
         RETURN;
     END;
 
@@ -3408,7 +3398,7 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
     l_txt := TRIM(l_txt);
 
     IF SUBSTR(l_txt,1,1) NOT IN ('{','[') THEN
-      p_err_msg := 'Gemini output is not JSON.';
+      p_err_msg := 'API output is not JSON.';
       RETURN;
     END IF;
 
