@@ -643,8 +643,11 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.ai-welcome-text h2 { font-size: 28px; margin-bottom: 8px; font-weight: 300; letter-spacing: -0.5px; }');
         htp.p('.ai-welcome-text span { color: #3b82f6; font-weight: 700; }');
         htp.p('.ai-sql-container { background: #1e293b; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; height: 100%; flex: 1; }');
-        htp.p('.ai-sql-toolbar { background: #0f172a; padding: 10px 16px; display: flex; justify-content: flex-end; }');
+        htp.p('.ai-sql-toolbar { background: #0f172a; padding: 10px 16px; display: flex; justify-content: flex-end; gap: 10px; }');
         htp.p('.ai-sql-run-btn { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }');
+        htp.p('.ai-sql-copy-btn { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; }');
+        htp.p('.ai-sql-copy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }');
+        htp.p('.ai-sql-copy-btn.copied { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }');
         htp.p('.CodeMirror { height: 100%; flex: 1; font-family: "Fira Code", Consolas, monospace; font-size: 14px; }');
         
         htp.p('.ai-thinking { display: none; padding: 24px 30px; text-align: left; color: #4b5563; font-size: 15px; align-items: center; gap: 12px; width: 100%; }');
@@ -1006,7 +1009,10 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('</div></div>');
         htp.p('<div id="view_sql_' || l_id || '" class="ai-view-content">');
         htp.p('<div class="ai-sql-container">');
-        htp.p('<div class="ai-sql-toolbar"><button type="button" class="ai-sql-run-btn" onclick="window.AID_' || l_id || '.runSql()">▶ Run & Save Query</button></div>');
+        htp.p('<div class="ai-sql-toolbar">');
+        htp.p('<button type="button" id="sql_copy_btn_' || l_id || '" class="ai-sql-copy-btn" onclick="window.AID_' || l_id || '.copySql(); return false;">📋 Copy</button>');
+        htp.p('<button type="button" class="ai-sql-run-btn" onclick="window.AID_' || l_id || '.runSql()">▶ Run & Save Query</button>');
+        htp.p('</div>');
         htp.p('<textarea id="sql_editor_' || l_id || '"></textarea>');
         htp.p('</div></div></div></div></div>');
 
@@ -3147,6 +3153,28 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 apex.server.plugin(self.ajax,{x01:"UPDATE_SQL",x02:String(self.currentQueryId),x03:sql},{
                     success:function(d){self.hideSkeleton();self.processResult(d);self.switchTab("report");},
                     error:function(x,s,e){self.hideSkeleton();err.text("Error: "+e).show();}
+                });
+            },
+
+            copySql: function() {
+                var self=this, $=apex.jQuery;
+                var sql = self.cmEditor ? self.cmEditor.getValue() : $("#sql_editor_"+self.id).val();
+                if(!sql || !sql.trim()) return;
+                var btn = $("#sql_copy_btn_"+self.id);
+                navigator.clipboard.writeText(sql).then(function() {
+                    btn.addClass("copied").html("✓ Copied");
+                    setTimeout(function() { btn.removeClass("copied").html("📋 Copy"); }, 2000);
+                }).catch(function() {
+                    // Fallback for older browsers
+                    var ta = document.createElement("textarea");
+                    ta.value = sql;
+                    ta.style.cssText = "position:fixed;left:-9999px;";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    btn.addClass("copied").html("✓ Copied");
+                    setTimeout(function() { btn.removeClass("copied").html("📋 Copy"); }, 2000);
                 });
             }
         };
