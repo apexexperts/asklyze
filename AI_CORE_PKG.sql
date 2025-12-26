@@ -1784,14 +1784,20 @@ PROCEDURE UPDATE_REPORT_KPI(
     p_result_json OUT CLOB
 ) IS
     l_kpis_json CLOB;
-    l_kpis_arr JSON_ARRAY_T;
-    l_kpi_obj JSON_OBJECT_T;
-    l_new_kpis_arr JSON_ARRAY_T := JSON_ARRAY_T();
     l_user VARCHAR2(100);
     l_owner_user VARCHAR2(100);
-    l_sql CLOB;
+    l_sql VARCHAR2(32767);
     l_num_val NUMBER;
     l_new_value VARCHAR2(100);
+    l_new_kpis CLOB;
+    l_count NUMBER;
+    l_first BOOLEAN := TRUE;
+    l_title VARCHAR2(500);
+    l_icon VARCHAR2(100);
+    l_trend VARCHAR2(50);
+    l_color VARCHAR2(50);
+    l_old_sql VARCHAR2(32767);
+    l_old_value VARCHAR2(500);
 BEGIN
     l_user := NVL(V('APP_USER'), USER);
 
@@ -1818,23 +1824,24 @@ BEGIN
         RETURN;
     END IF;
 
-    -- Parse existing KPIs
+    -- Parse to get count
     BEGIN
-        l_kpis_arr := JSON_ARRAY_T.parse(l_kpis_json);
+        APEX_JSON.PARSE(l_kpis_json);
+        l_count := APEX_JSON.GET_COUNT(p_path => '.');
     EXCEPTION WHEN OTHERS THEN
         p_result_json := '{"status":"error","message":"Invalid KPIs configuration"}';
         RETURN;
     END;
 
     -- Validate KPI index
-    IF p_kpi_index < 0 OR p_kpi_index >= l_kpis_arr.get_size THEN
+    IF p_kpi_index < 0 OR p_kpi_index >= l_count THEN
         p_result_json := '{"status":"error","message":"Invalid KPI index: ' || p_kpi_index || '"}';
         RETURN;
     END IF;
 
     -- Clean and validate the new SQL
-    l_sql := CLEAN_AI_SQL(p_new_sql);
-    IF l_sql IS NULL OR DBMS_LOB.GETLENGTH(l_sql) = 0 THEN
+    l_sql := SUBSTR(CLEAN_AI_SQL(p_new_sql), 1, 32767);
+    IF l_sql IS NULL OR LENGTH(l_sql) = 0 THEN
         p_result_json := '{"status":"error","message":"SQL cannot be empty"}';
         RETURN;
     END IF;
@@ -1856,31 +1863,58 @@ BEGIN
         RETURN;
     END;
 
-    -- Get the KPI and update it
-    l_kpi_obj := JSON_OBJECT_T(l_kpis_arr.get(p_kpi_index));
-    l_kpi_obj.put('value_sql', l_sql);
-    l_kpi_obj.put('value', l_new_value);
+    -- Rebuild KPIs array manually to avoid JSON_OBJECT_T issues
+    DBMS_LOB.CREATETEMPORARY(l_new_kpis, TRUE);
+    DBMS_LOB.APPEND(l_new_kpis, '[');
 
-    -- Update title if provided
-    IF p_kpi_title IS NOT NULL THEN
-        l_kpi_obj.put('title', p_kpi_title);
-    END IF;
+    FOR i IN 1 .. l_count LOOP
+        l_title := APEX_JSON.GET_VARCHAR2(p_path => '[%d].title', p0 => i);
+        l_icon  := APEX_JSON.GET_VARCHAR2(p_path => '[%d].icon', p0 => i);
+        l_trend := APEX_JSON.GET_VARCHAR2(p_path => '[%d].trend', p0 => i);
+        l_color := APEX_JSON.GET_VARCHAR2(p_path => '[%d].color', p0 => i);
+        l_old_sql := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value_sql', p0 => i);
+        l_old_value := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value', p0 => i);
 
-    -- Rebuild the KPIs array
-    FOR i IN 0 .. l_kpis_arr.get_size - 1 LOOP
-        IF i = p_kpi_index THEN
-            l_new_kpis_arr.append(l_kpi_obj);
-        ELSE
-            l_new_kpis_arr.append(l_kpis_arr.get(i));
+        IF NOT l_first THEN
+            DBMS_LOB.APPEND(l_new_kpis, ',');
         END IF;
+        l_first := FALSE;
+
+        DBMS_LOB.APPEND(l_new_kpis, '{');
+
+        -- If this is the KPI being updated
+        IF (i - 1) = p_kpi_index THEN
+            IF p_kpi_title IS NOT NULL THEN
+                DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(p_kpi_title) || '"');
+            ELSE
+                DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(NVL(l_title, 'Metric')) || '"');
+            END IF;
+            DBMS_LOB.APPEND(l_new_kpis, ',"value":"' || SAFE_JSON_ESCAPE(l_new_value) || '"');
+            DBMS_LOB.APPEND(l_new_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
+        ELSE
+            DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(NVL(l_title, 'Metric')) || '"');
+            DBMS_LOB.APPEND(l_new_kpis, ',"value":"' || SAFE_JSON_ESCAPE(NVL(l_old_value, '-')) || '"');
+            IF l_old_sql IS NOT NULL THEN
+                DBMS_LOB.APPEND(l_new_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_old_sql) || '"');
+            END IF;
+        END IF;
+
+        DBMS_LOB.APPEND(l_new_kpis, ',"icon":"' || SAFE_JSON_ESCAPE(NVL(l_icon, 'chart')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, ',"trend":"' || SAFE_JSON_ESCAPE(NVL(l_trend, 'neutral')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, ',"color":"' || SAFE_JSON_ESCAPE(NVL(l_color, 'blue')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, '}');
     END LOOP;
+
+    DBMS_LOB.APPEND(l_new_kpis, ']');
 
     -- Update the database
     UPDATE ASKLYZE_AI_QUERY_STORE
-       SET KPIS_JSON = l_new_kpis_arr.to_clob()
+       SET KPIS_JSON = l_new_kpis
      WHERE ID = p_query_id;
 
     COMMIT;
+
+    DBMS_LOB.FREETEMPORARY(l_new_kpis);
 
     p_result_json := '{"status":"success","new_value":"' || SAFE_JSON_ESCAPE(l_new_value) || '"}';
 
