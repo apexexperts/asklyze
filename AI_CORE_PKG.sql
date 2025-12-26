@@ -123,6 +123,15 @@ create or replace PACKAGE AI_CORE_PKG AUTHID CURRENT_USER AS
         p_result_json OUT CLOB
     );
 
+    -- NEW: Update KPI in report
+    PROCEDURE UPDATE_REPORT_KPI(
+        p_query_id    IN NUMBER,
+        p_kpi_index   IN NUMBER,
+        p_new_sql     IN CLOB,
+        p_kpi_title   IN VARCHAR2 DEFAULT NULL,
+        p_result_json OUT CLOB
+    );
+
     -- Data Execution & Rendering
     PROCEDURE EXECUTE_AND_RENDER(
         p_query_id IN NUMBER, 
@@ -1748,6 +1757,121 @@ EXCEPTION WHEN OTHERS THEN
     p_result_json := '{"status":"error","message":"' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
 END DELETE_DASHBOARD_CHART;
 
+-- ============================================================
+-- UPDATE_REPORT_KPI - Update KPI SQL in Report Builder
+-- ============================================================
+PROCEDURE UPDATE_REPORT_KPI(
+    p_query_id    IN NUMBER,
+    p_kpi_index   IN NUMBER,
+    p_new_sql     IN CLOB,
+    p_kpi_title   IN VARCHAR2 DEFAULT NULL,
+    p_result_json OUT CLOB
+) IS
+    l_kpis_json CLOB;
+    l_kpis_arr JSON_ARRAY_T;
+    l_kpi_obj JSON_OBJECT_T;
+    l_new_kpis_arr JSON_ARRAY_T := JSON_ARRAY_T();
+    l_user VARCHAR2(100);
+    l_owner_user VARCHAR2(100);
+    l_sql CLOB;
+    l_num_val NUMBER;
+    l_new_value VARCHAR2(100);
+BEGIN
+    l_user := NVL(V('APP_USER'), USER);
+
+    -- Get existing KPIs JSON
+    BEGIN
+        SELECT APP_USER, KPIS_JSON
+          INTO l_owner_user, l_kpis_json
+          FROM ASKLYZE_AI_QUERY_STORE
+         WHERE ID = p_query_id
+           AND QUERY_TYPE = 'REPORT';
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+        p_result_json := '{"status":"error","message":"Report not found"}';
+        RETURN;
+    END;
+
+    -- Security check
+    IF l_owner_user != l_user THEN
+        p_result_json := '{"status":"error","message":"Access denied"}';
+        RETURN;
+    END IF;
+
+    IF l_kpis_json IS NULL THEN
+        p_result_json := '{"status":"error","message":"No KPIs found in report"}';
+        RETURN;
+    END IF;
+
+    -- Parse existing KPIs
+    BEGIN
+        l_kpis_arr := JSON_ARRAY_T.parse(l_kpis_json);
+    EXCEPTION WHEN OTHERS THEN
+        p_result_json := '{"status":"error","message":"Invalid KPIs configuration"}';
+        RETURN;
+    END;
+
+    -- Validate KPI index
+    IF p_kpi_index < 0 OR p_kpi_index >= l_kpis_arr.get_size THEN
+        p_result_json := '{"status":"error","message":"Invalid KPI index: ' || p_kpi_index || '"}';
+        RETURN;
+    END IF;
+
+    -- Clean and validate the new SQL
+    l_sql := CLEAN_AI_SQL(p_new_sql);
+    IF l_sql IS NULL OR DBMS_LOB.GETLENGTH(l_sql) = 0 THEN
+        p_result_json := '{"status":"error","message":"SQL cannot be empty"}';
+        RETURN;
+    END IF;
+
+    -- Test the SQL by executing it
+    BEGIN
+        EXECUTE IMMEDIATE l_sql INTO l_num_val;
+        IF l_num_val IS NOT NULL THEN
+            IF l_num_val = TRUNC(l_num_val) THEN
+                l_new_value := TO_CHAR(l_num_val, 'FM999,999,999,999');
+            ELSE
+                l_new_value := TO_CHAR(l_num_val, 'FM999,999,999,990.00');
+            END IF;
+        ELSE
+            l_new_value := '0';
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        p_result_json := '{"status":"error","message":"SQL Error: ' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
+        RETURN;
+    END;
+
+    -- Get the KPI and update it
+    l_kpi_obj := JSON_OBJECT_T(l_kpis_arr.get(p_kpi_index));
+    l_kpi_obj.put('value_sql', l_sql);
+    l_kpi_obj.put('value', l_new_value);
+
+    -- Update title if provided
+    IF p_kpi_title IS NOT NULL THEN
+        l_kpi_obj.put('title', p_kpi_title);
+    END IF;
+
+    -- Rebuild the KPIs array
+    FOR i IN 0 .. l_kpis_arr.get_size - 1 LOOP
+        IF i = p_kpi_index THEN
+            l_new_kpis_arr.append(l_kpi_obj);
+        ELSE
+            l_new_kpis_arr.append(l_kpis_arr.get(i));
+        END IF;
+    END LOOP;
+
+    -- Update the database
+    UPDATE ASKLYZE_AI_QUERY_STORE
+       SET KPIS_JSON = l_new_kpis_arr.to_clob()
+     WHERE ID = p_query_id;
+
+    COMMIT;
+
+    p_result_json := '{"status":"success","new_value":"' || SAFE_JSON_ESCAPE(l_new_value) || '"}';
+
+EXCEPTION WHEN OTHERS THEN
+    p_result_json := '{"status":"error","message":"' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
+END UPDATE_REPORT_KPI;
+
     -- ============================================================
     -- Generate Dashboard - WHITELIST-ONLY VERSION
     -- ============================================================
@@ -2007,13 +2131,18 @@ RULES:
                     l_first_kpi := FALSE;
                     
                     DBMS_LOB.APPEND(l_processed_kpis, '{');
-                    DBMS_LOB.APPEND(l_processed_kpis, '"title":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('title')) || '"');
+                    DBMS_LOB.APPEND(l_processed_kpis, '"idx":' || i);
+                    DBMS_LOB.APPEND(l_processed_kpis, ',"title":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('title')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"icon":"' || SAFE_JSON_ESCAPE(NVL(l_kpi_obj.get_string('icon'), 'chart')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"color":"' || SAFE_JSON_ESCAPE(NVL(l_kpi_obj.get_string('color'), 'blue')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"trend":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('trend')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"trend_label":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('trend_label')) || '"');
-                    
+
                     l_sql := CLEAN_AI_SQL(l_kpi_obj.get_string('value_sql'));
+                    -- Include the SQL for editing
+                    IF l_sql IS NOT NULL THEN
+                        DBMS_LOB.APPEND(l_processed_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
+                    END IF;
                     IF l_sql IS NOT NULL THEN
                         BEGIN
                             EXECUTE IMMEDIATE l_sql INTO l_num_val;
