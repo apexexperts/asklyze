@@ -95,8 +95,8 @@ create or replace PACKAGE BODY AI_UI_PKG AS
 
         -- Sidebar Styles
         htp.p('.aid-sidebar { width: 320px; min-width: 320px; background: #ffffff; display: flex; flex-direction: column; transition: all 0.3s ease; border-right: 1px solid #e5e7eb; height: 100%; box-shadow: 2px 0 8px rgba(0,0,0,0.04); }');
-        htp.p('.aid-sidebar.collapsed { width: 0; min-width: 0; overflow: hidden; }');
-        htp.p('.aid-sidebar-header { padding: 20px 20px 16px; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.aid-sidebar.collapsed { width: 68px; min-width: 68px; }');
+        htp.p('.aid-sidebar-header { padding: 0 20px 16px; display: flex; align-items: center; justify-content: space-between; }');
         htp.p('.aid-sidebar-logo { display: flex; align-items: center; gap: 2px; }');
         htp.p('.aid-sidebar-logo span { font-size: 18px; font-weight: 700; letter-spacing: 3px; }');
         htp.p('.aid-sidebar-logo .logo-a { color: #1e40af; }');
@@ -173,6 +173,36 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-settings-btn:hover { background: #f3f4f6; border-color: #d1d5db; }');
         htp.p('.aid-clear-btn { width: 100%; background: #fff; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }');
         htp.p('.aid-clear-btn:hover { background: #fef2f2; border-color: #fca5a5; }');
+
+        -- Collapsed Sidebar Styles
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-header { padding: 16px 12px; justify-content: center; }');
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-logo { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-header-settings { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-new-chat-btn { width: 44px; height: 44px; padding: 0; margin: 0 12px 12px; border-radius: 10px; }');
+        htp.p('.aid-sidebar.collapsed .aid-new-chat-btn .btn-text { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-new-chat-btn .btn-icon { font-size: 20px; }');
+        htp.p('.aid-sidebar.collapsed .aid-search-box { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-tabs-container { flex-direction: column; padding: 0 12px; border-bottom: none; gap: 8px; }');
+        htp.p('.aid-sidebar.collapsed .aid-hist-tab { padding: 12px; border-radius: 10px; background: #f9fafb; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; }');
+        htp.p('.aid-sidebar.collapsed .aid-hist-tab .tab-text { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-hist-tab .tab-icon { display: flex; font-size: 18px; }');
+        htp.p('.aid-sidebar.collapsed .aid-hist-tab.active { background: #ede9fe; border-color: #c4b5fd; }');
+        htp.p('.aid-sidebar.collapsed .aid-hist-tab.active::after { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-chat-list { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-footer { padding: 12px; gap: 8px; }');
+        htp.p('.aid-sidebar.collapsed .aid-settings-btn, .aid-sidebar.collapsed .aid-clear-btn { width: 44px; height: 44px; padding: 0; border-radius: 10px; }');
+        htp.p('.aid-sidebar.collapsed .aid-settings-btn .btn-text, .aid-sidebar.collapsed .aid-clear-btn .btn-text { display: none; }');
+        htp.p('.aid-sidebar.collapsed .aid-settings-btn .btn-icon, .aid-sidebar.collapsed .aid-clear-btn .btn-icon { font-size: 18px; }');
+        htp.p('.aid-sidebar-toggle-wrapper { padding: 12px 20px 8px; display: flex; justify-content: flex-end; }');
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-toggle-wrapper { padding: 12px; justify-content: center; }');
+        htp.p('.aid-sidebar-toggle-btn { background: transparent; border: none; color: #6b7280; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }');
+        htp.p('.aid-sidebar-toggle-btn:hover { background: #f3f4f6; color: #374151; }');
+        htp.p('.aid-sidebar-toggle-btn svg { width: 20px; height: 20px; transition: transform 0.3s ease; }');
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-toggle-btn svg { transform: rotate(180deg); }');
+        htp.p('.tab-icon { display: none; }');
+        htp.p('.btn-icon { display: flex; align-items: center; justify-content: center; }');
+        htp.p('.btn-text { display: inline; }');
+        htp.p('.tab-text { display: inline; }');
 
         -- =====================================================
         -- PROFESSIONAL WIZARD MODAL STYLES
@@ -353,8 +383,8 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- END WIZARD STYLES
         -- =====================================================
 
-        htp.p('.aid-sidebar-toggle { position: absolute; left: 320px; top: 50%; transform: translateY(-50%); background: #ffffff; border: 1px solid #e5e7eb; color: #6b7280; width: 24px; height: 48px; border-radius: 0 8px 8px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: left 0.3s ease; box-shadow: 2px 0 8px rgba(0,0,0,0.08); }');
-        htp.p('.aid-sidebar-toggle.collapsed { left: 0; }');
+        htp.p('.aid-sidebar-toggle { position: absolute; left: 320px; top: 50%; transform: translateY(-50%); background: #ffffff; border: 1px solid #e5e7eb; color: #6b7280; width: 24px; height: 48px; border-radius: 0 8px 8px 0; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 10; transition: left 0.3s ease; box-shadow: 2px 0 8px rgba(0,0,0,0.08); }');
+        htp.p('.aid-sidebar-toggle.collapsed { left: 68px; }');
         htp.p('.aid-sidebar-toggle:hover { background: #f3f4f6; color: #374151; }');
 
         -- Main Content Area
@@ -953,28 +983,30 @@ create or replace PACKAGE BODY AI_UI_PKG AS
 
         -- SIDEBAR
         htp.p('<div id="sidebar_' || l_id || '" class="aid-sidebar">');
+        -- Toggle wrapper at top
+        htp.p('<div class="aid-sidebar-toggle-wrapper">');
+        htp.p('<button type="button" class="aid-sidebar-toggle-btn" onclick="window.AID_' || l_id || '.toggleSidebar()" title="Toggle sidebar">');
+        htp.p('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>');
+        htp.p('</button>');
+        htp.p('</div>');
         htp.p('<div class="aid-sidebar-header">');
         htp.p('<div class="aid-sidebar-logo"><span class="logo-a">A</span><span class="logo-s">S</span><span class="logo-k">K</span><span class="logo-l">L</span><span class="logo-y">Y</span><span class="logo-z">Z</span><span class="logo-e">E</span></div>');
         htp.p('<button type="button" class="aid-header-settings" onclick="window.AID_' || l_id || '.openWizard()" title="Settings">☰</button>');
         htp.p('</div>');
-        htp.p('<button type="button" class="aid-new-chat-btn" onclick="window.AID_' || l_id || '.newChat()">+ New</button>');
+        htp.p('<button type="button" class="aid-new-chat-btn" onclick="window.AID_' || l_id || '.newChat()"><span class="btn-icon">+</span><span class="btn-text">New</span></button>');
         htp.p('<div class="aid-search-box">');
         htp.p('<input type="text" id="search_history_' || l_id || '" class="aid-search-input" placeholder="Search conversations..." onkeyup="window.AID_' || l_id || '.searchHistory(this.value)">');
         htp.p('</div>');
         htp.p('<div class="aid-tabs-container">');
-        htp.p('<button type="button" id="tab_all_' || l_id || '" class="aid-hist-tab active" onclick="window.AID_' || l_id || '.setHistoryFilter(''all'')">All Chats</button>');
-        htp.p('<button type="button" id="tab_fav_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''fav'')">Favorites ★</button>');
+        htp.p('<button type="button" id="tab_all_' || l_id || '" class="aid-hist-tab active" onclick="window.AID_' || l_id || '.setHistoryFilter(''all'')"><span class="tab-icon">💬</span><span class="tab-text">All Chats</span></button>');
+        htp.p('<button type="button" id="tab_fav_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''fav'')"><span class="tab-icon">☆</span><span class="tab-text">Favorites ★</span></button>');
         htp.p('</div>');
         htp.p('<div id="chat_list_' || l_id || '" class="aid-chat-list"><div class="aid-loading-history">Loading...</div></div>');
         htp.p('<div class="aid-sidebar-footer">');
-        htp.p('<button type="button" class="aid-settings-btn" onclick="window.AID_' || l_id || '.openWizard()">⚙️ Data Settings</button>');
-        htp.p('<button type="button" class="aid-clear-btn" onclick="window.AID_' || l_id || '.clearHistory()">🗑️ Clear All History</button>');
+        htp.p('<button type="button" class="aid-settings-btn" onclick="window.AID_' || l_id || '.openWizard()"><span class="btn-icon">⚙️</span><span class="btn-text">Data Settings</span></button>');
+        htp.p('<button type="button" class="aid-clear-btn" onclick="window.AID_' || l_id || '.clearHistory()"><span class="btn-icon">🗑️</span><span class="btn-text">Clear All History</span></button>');
         htp.p('</div></div>');
-        
-        -- Toggle
-        htp.p('<button type="button" id="toggle_' || l_id || '" class="aid-sidebar-toggle" onclick="window.AID_' || l_id || '.toggleSidebar()">');
-        htp.p('<span id="toggle_icon_' || l_id || '">◀</span></button>');
-        
+
         -- MAIN CONTENT
         htp.p('<div class="aid-main-content">');
         
@@ -1715,7 +1747,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
             },
 
 
-            toggleSidebar: function() { var $=apex.jQuery; var sb=$("#sidebar_"+this.id), tg=$("#toggle_"+this.id), ic=$("#toggle_icon_"+this.id); if(sb.hasClass("collapsed")){sb.removeClass("collapsed");tg.removeClass("collapsed");ic.text("◀");}else{sb.addClass("collapsed");tg.addClass("collapsed");ic.text("▶");} },
+            toggleSidebar: function() { var $=apex.jQuery; var sb=$("#sidebar_"+this.id); sb.toggleClass("collapsed"); },
             
             loadHistory: function(s) {
                 var $=apex.jQuery, self=this, list=$("#chat_list_"+this.id);
