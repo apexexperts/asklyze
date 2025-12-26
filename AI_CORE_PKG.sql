@@ -1538,23 +1538,23 @@ BEGIN
         p_result_json := '{"status":"error","message":"No charts in dashboard"}';
         RETURN;
     END IF;
-    
+
     l_charts_arr := l_config_obj.get_array('charts');
-    
+
     -- Validate chart index (0-based)
     IF p_chart_index < 0 OR p_chart_index >= l_charts_arr.get_size THEN
         p_result_json := '{"status":"error","message":"Invalid chart index: ' || p_chart_index || '"}';
         RETURN;
     END IF;
-    
+
     -- Get the specific chart
     l_chart_obj := JSON_OBJECT_T(l_charts_arr.get(p_chart_index));
-    
+
     -- Update SQL if provided
     IF p_new_sql IS NOT NULL AND DBMS_LOB.GETLENGTH(p_new_sql) > 0 THEN
         l_sql := CLEAN_AI_SQL(p_new_sql);
         l_chart_obj.put('sql', l_sql);
-        
+
         -- Test the SQL by executing it
         BEGIN
             l_data := EXECUTE_SQL_TO_JSON(l_sql);
@@ -1563,21 +1563,33 @@ BEGIN
             RETURN;
         END;
     END IF;
-    
+
     -- Update chart type if provided
     IF p_chart_type IS NOT NULL THEN
         l_chart_obj.put('chart_type', LOWER(p_chart_type));
     END IF;
-    
+
     -- Update title if provided
     IF p_chart_title IS NOT NULL THEN
         l_chart_obj.put('title', p_chart_title);
     END IF;
-    
-    -- Replace the chart in array
-    l_charts_arr.put(p_chart_index, l_chart_obj);
-    
-    -- Update config object
+
+    -- Rebuild the charts array to avoid duplication issues with put()
+    DECLARE
+        l_new_charts_arr JSON_ARRAY_T := JSON_ARRAY_T();
+        l_arr_size PLS_INTEGER := l_charts_arr.get_size;
+    BEGIN
+        FOR i IN 0 .. l_arr_size - 1 LOOP
+            IF i = p_chart_index THEN
+                l_new_charts_arr.append(l_chart_obj);
+            ELSE
+                l_new_charts_arr.append(l_charts_arr.get(i));
+            END IF;
+        END LOOP;
+        l_charts_arr := l_new_charts_arr;
+    END;
+
+    -- Update config object with rebuilt array
     l_config_obj.put('charts', l_charts_arr);
     
     -- Convert back to CLOB
@@ -2388,16 +2400,17 @@ RULES:
     -- ============================================================
     -- Data Execution & Renderer
     -- ============================================================
-PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS 
+PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         l_sql CLOB; l_chart_config CLOB; l_chart_config_v2 CLOB; l_data_profile CLOB; l_viz_type VARCHAR2(50);
         l_kpis CLOB; l_processed_kpis CLOB; l_report_title VARCHAR2(4000); l_query_type VARCHAR2(20);
         l_user_question VARCHAR2(4000);
+        l_saved_chart_type VARCHAR2(50);
         l_cursor_id INTEGER; l_rows_processed INTEGER; l_col_cnt INTEGER; l_desc DBMS_SQL.DESC_TAB;
         l_varchar_val VARCHAR2(32767); l_number_val NUMBER; l_date_val DATE;
         l_result CLOB; l_data_started BOOLEAN := FALSE;
         l_row_count NUMBER := 0;
         l_max_rows NUMBER := 5000; -- HARD LIMIT TO PREVENT CRASH
-        
+
         -- NEW: Pivot variables
         l_pivot_analysis CLOB;
         l_pivot_recommended BOOLEAN := FALSE;
@@ -2416,16 +2429,18 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         END IF;
         
         BEGIN
-            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, 
-                   CHART_CONFIG_V2, DATA_PROFILE, VISUALIZATION_TYPE, USER_QUESTION
-            INTO l_sql, l_chart_config, l_kpis, l_report_title, 
-                 l_chart_config_v2, l_data_profile, l_viz_type, l_user_question
+            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE,
+                   CHART_CONFIG_V2, DATA_PROFILE, VISUALIZATION_TYPE, USER_QUESTION, SAVED_CHART_TYPE
+            INTO l_sql, l_chart_config, l_kpis, l_report_title,
+                 l_chart_config_v2, l_data_profile, l_viz_type, l_user_question, l_saved_chart_type
             FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
         EXCEPTION WHEN OTHERS THEN
-            SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, USER_QUESTION
-            INTO l_sql, l_chart_config, l_kpis, l_report_title, l_user_question
-            FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
-            l_chart_config_v2 := l_chart_config; l_data_profile := '{}'; l_viz_type := 'CUSTOM';
+            BEGIN
+                SELECT GENERATED_SQL, CHART_CONFIG_JSON, KPIS_JSON, REPORT_TITLE, USER_QUESTION
+                INTO l_sql, l_chart_config, l_kpis, l_report_title, l_user_question
+                FROM ASKLYZE_AI_QUERY_STORE WHERE ID = p_query_id;
+                l_chart_config_v2 := l_chart_config; l_data_profile := '{}'; l_viz_type := 'CUSTOM'; l_saved_chart_type := NULL;
+            END;
         END;
         
         l_processed_kpis := PROCESS_KPIS(l_kpis);
@@ -2434,6 +2449,9 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
         DBMS_LOB.APPEND(l_result, ',"query_type":"REPORT"');
         DBMS_LOB.APPEND(l_result, ',"report_title":"' || SAFE_JSON_ESCAPE(NVL(l_report_title, 'Analysis Report')) || '"');
         DBMS_LOB.APPEND(l_result, ',"visualization_type":"' || SAFE_JSON_ESCAPE(NVL(l_viz_type, 'CUSTOM')) || '"');
+        IF l_saved_chart_type IS NOT NULL THEN
+            DBMS_LOB.APPEND(l_result, ',"saved_chart_type":"' || SAFE_JSON_ESCAPE(l_saved_chart_type) || '"');
+        END IF;
         DBMS_LOB.APPEND(l_result, ',"generated_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
         
         -- Safe Append for Configs

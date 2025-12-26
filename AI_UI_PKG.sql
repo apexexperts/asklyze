@@ -68,6 +68,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>');
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>');
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>');
+        htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>');
         htp.p('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@9.4.0/dist/gridstack.min.css">');
         htp.p('<script src="https://cdn.jsdelivr.net/npm/gridstack@9.4.0/dist/gridstack-all.js"></script>');
         htp.p('<link href="https://cdn.webdatarocks.com/latest/webdatarocks.min.css" rel="stylesheet">');
@@ -398,6 +399,11 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-dashboard-view { display: none; flex-direction: column; height: 100%; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); }');
         htp.p('.aid-dashboard-view.active { display: flex; }');
         htp.p('.aid-dash-title { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 20px; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-align: center; box-shadow: 0 4px 15px rgba(30,64,175,0.3); }');
+        htp.p('.aid-dash-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; gap: 10px; }');
+        htp.p('.aid-dash-export-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }');
+        htp.p('.aid-dash-export-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }');
+        htp.p('.aid-dash-export-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }');
+        htp.p('.aid-dash-export-btn svg { width: 18px; height: 18px; }');
         htp.p('.aid-dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }');
         htp.p('@media (max-width: 1200px) { .aid-dash-kpis { grid-template-columns: repeat(2, 1fr); } }');
         htp.p('.aid-dash-kpi { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; }');
@@ -506,7 +512,23 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.ai-view-content { display: none; height: 100%; }');
         htp.p('.ai-view-content.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }');
         htp.p('@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }');
-        htp.p('#chart_container_' || l_id || ' { width: 100%; height: 100%; flex: 1; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }');
+        htp.p('#chart_container_' || l_id || ' { width: 100%; height: 100%; min-height: 400px; flex: 1; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }');
+
+        -- Chart View Layout with Type Selector
+        htp.p('.ai-chart-view-wrapper.active { flex-direction: row !important; gap: 20px; }');
+        htp.p('.ai-chart-main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }');
+        htp.p('.ai-chart-type-panel { width: 280px; flex-shrink: 0; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-y: auto; max-height: 100%; }');
+        htp.p('.ai-chart-type-panel-header { margin-bottom: 16px; }');
+        htp.p('.ai-chart-type-panel-header h3 { font-size: 16px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0; }');
+        htp.p('.ai-chart-type-panel-header span { font-size: 13px; color: #6b7280; }');
+        htp.p('.ai-report-chart-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }');
+        htp.p('.ai-report-chart-type-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 8px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s; background: #fff; }');
+        htp.p('.ai-report-chart-type-item:hover { border-color: #93c5fd; background: #f0f9ff; }');
+        htp.p('.ai-report-chart-type-item.selected { border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }');
+        htp.p('.ai-report-chart-type-item.selected .ai-rct-icon { color: #3b82f6; }');
+        htp.p('.ai-rct-icon { font-size: 24px; margin-bottom: 6px; color: #6b7280; transition: color 0.2s; }');
+        htp.p('.ai-rct-icon svg { width: 24px; height: 24px; }');
+        htp.p('.ai-rct-name { font-size: 11px; color: #374151; text-align: center; font-weight: 500; }');
 
         -- Interaction Container
         htp.p('.ai-interaction-container { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 0 20px; transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }');
@@ -934,6 +956,9 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- Dashboard View Container
         htp.p('<div id="dashboard_view_' || l_id || '" class="aid-dashboard-view">');
         htp.p('<div class="aid-dash-toolbar">');
+        htp.p('<button type="button" id="dash_export_btn_' || l_id || '" class="aid-dash-export-btn" onclick="window.AID_' || l_id || '.exportDashboardPDF()">');
+        htp.p('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>');
+        htp.p('Export PDF</button>');
         htp.p('</div>');
         htp.p('<div id="dash_title_' || l_id || '" class="aid-dash-title"></div>');
         htp.p('<div id="dash_kpis_' || l_id || '" class="aid-dash-kpis"></div>');
@@ -973,7 +998,12 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('</div></div>');
         htp.p('<div id="pivot_container_' || l_id || '" class="ai-pivot-content"></div>');
         htp.p('</div></div>');
-        htp.p('<div id="view_chart_' || l_id || '" class="ai-view-content"><div id="chart_container_' || l_id || '"></div></div>');
+        htp.p('<div id="view_chart_' || l_id || '" class="ai-view-content ai-chart-view-wrapper">');
+        htp.p('<div class="ai-chart-main-area"><div id="chart_container_' || l_id || '"></div></div>');
+        htp.p('<div class="ai-chart-type-panel">');
+        htp.p('<div class="ai-chart-type-panel-header"><h3>Chart Types</h3><span>Select a visualization</span></div>');
+        htp.p('<div id="report_chart_types_' || l_id || '" class="ai-report-chart-types"></div>');
+        htp.p('</div></div>');
         htp.p('<div id="view_sql_' || l_id || '" class="ai-view-content">');
         htp.p('<div class="ai-sql-container">');
         htp.p('<div class="ai-sql-toolbar"><button type="button" class="ai-sql-run-btn" onclick="window.AID_' || l_id || '.runSql()">▶ Run & Save Query</button></div>');
@@ -1808,11 +1838,8 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         gridEl.classList.add("grid-stack");
     }
     this.layoutInitializing = true;
-    if(this.grid) {
-        try { this.grid.destroy(false); } catch(e) {}
-        this.grid = null;
-    }
-    gridEl.innerHTML = "";
+
+    // Dispose ECharts BEFORE destroying grid (while DOM still exists)
     if(this.dashboardCharts) {
         Object.keys(this.dashboardCharts).forEach(function(k) {
             if(self.dashboardCharts[k]) {
@@ -1821,6 +1848,19 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         });
     }
     this.dashboardCharts = {};
+
+    // Remove all widgets from grid before destroying
+    if(this.grid) {
+        try {
+            this.grid.removeAll(false);
+            this.grid.destroy(false);
+        } catch(e) {}
+        this.grid = null;
+    }
+
+    // Clear any remaining content
+    gridEl.innerHTML = "";
+
     this.currentDashboardCharts = charts;
     var layoutBucketsByBase = {};
     if(savedLayout && savedLayout.forEach) {
@@ -2754,6 +2794,103 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     });
                 });
             },
+
+            exportDashboardPDF: function() {
+                var self = this, $=apex.jQuery;
+                var dashView = document.getElementById("dashboard_view_" + this.id);
+                if(!dashView) { alert("Dashboard not found"); return; }
+
+                var exportBtn = $("#dash_export_btn_" + this.id);
+                var originalText = exportBtn.html();
+                exportBtn.prop("disabled", true).html("<span>Generating PDF...</span>");
+
+                // Create a wrapper to capture the content without the toolbar
+                var contentWrapper = document.createElement("div");
+                contentWrapper.style.cssText = "position: absolute; left: -9999px; top: 0; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); padding: 20px;";
+
+                // Clone title, KPIs, and charts (excluding toolbar)
+                var title = document.getElementById("dash_title_" + this.id);
+                var kpis = document.getElementById("dash_kpis_" + this.id);
+                var charts = document.getElementById("dash_charts_" + this.id);
+
+                if(title) contentWrapper.appendChild(title.cloneNode(true));
+                if(kpis) contentWrapper.appendChild(kpis.cloneNode(true));
+                if(charts) {
+                    var chartsClone = charts.cloneNode(true);
+                    chartsClone.style.position = "relative";
+                    chartsClone.style.height = "auto";
+                    chartsClone.style.minHeight = "auto";
+
+                    // Re-render charts as canvas images in the clone
+                    var chartItems = chartsClone.querySelectorAll(".aid-dash-chart-body");
+                    Object.keys(self.dashboardCharts).forEach(function(key) {
+                        var chart = self.dashboardCharts[key];
+                        if(chart) {
+                            var dataUrl = chart.getDataURL({type:"png", pixelRatio: 2, backgroundColor: "#fff"});
+                            var origContainer = document.getElementById(key);
+                            if(origContainer) {
+                                var cloneContainer = chartsClone.querySelector("#" + key);
+                                if(cloneContainer) {
+                                    cloneContainer.innerHTML = "<img src=\"" + dataUrl + "\" style=\"width:100%;height:100%;object-fit:contain;\">";
+                                }
+                            }
+                        }
+                    });
+                    contentWrapper.appendChild(chartsClone);
+                }
+
+                document.body.appendChild(contentWrapper);
+
+                // Calculate dimensions for landscape A4
+                var pdfWidth = 297; // A4 landscape width in mm
+                var pdfHeight = 210; // A4 landscape height in mm
+                var margin = 10;
+                var contentWidth = pdfWidth - (margin * 2);
+                var contentHeight = pdfHeight - (margin * 2);
+
+                // Set wrapper width to match aspect ratio
+                contentWrapper.style.width = "1400px";
+
+                html2canvas(contentWrapper, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: "#f0f4f8",
+                    logging: false,
+                    windowWidth: 1400
+                }).then(function(canvas) {
+                    document.body.removeChild(contentWrapper);
+
+                    var imgData = canvas.toDataURL("image/png");
+                    var imgWidth = canvas.width;
+                    var imgHeight = canvas.height;
+
+                    // Calculate scaling to fit on one page
+                    var ratio = Math.min(contentWidth / (imgWidth * 0.264583), contentHeight / (imgHeight * 0.264583));
+                    var scaledWidth = imgWidth * 0.264583 * ratio;
+                    var scaledHeight = imgHeight * 0.264583 * ratio;
+
+                    // Center the content
+                    var xOffset = margin + (contentWidth - scaledWidth) / 2;
+                    var yOffset = margin + (contentHeight - scaledHeight) / 2;
+
+                    var jsPDFObj = window.jspdf;
+                    var pdf = new jsPDFObj.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+                    pdf.addImage(imgData, "PNG", xOffset, yOffset, scaledWidth, scaledHeight);
+
+                    var dashTitle = document.getElementById("dash_title_" + self.id);
+                    var fileName = dashTitle ? dashTitle.textContent.trim().replace(/[^a-zA-Z0-9]/g, "_") + ".pdf" : "dashboard.pdf";
+                    pdf.save(fileName);
+
+                    exportBtn.prop("disabled", false).html(originalText);
+                }).catch(function(err) {
+                    console.error("PDF export error:", err);
+                    document.body.removeChild(contentWrapper);
+                    exportBtn.prop("disabled", false).html(originalText);
+                    alert("Failed to export PDF. Please try again.");
+                });
+            },
 ');
 
 
@@ -2796,37 +2933,106 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
             exportHTML: function() { var tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; var html="<html><head><style>table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}th{background:#3b82f6;color:#fff}</style></head><body>"+tbl.outerHTML+"</body></html>"; var blob=new Blob([html],{type:"text/html"}); var link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download="report.html"; document.body.appendChild(link); link.click(); document.body.removeChild(link); },
             exportPDF: function() { var tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; try{var jsPDFObj=window.jspdf;var doc=new jsPDFObj.jsPDF();doc.autoTable({html:"#tbl_"+this.id,startY:20});doc.save("report.pdf");}catch(e){alert("PDF error");} },
 
-            renderChart: function(data,config) {
+            renderChart: function(data,config,overrideType) {
                 var $=apex.jQuery,self=this,dom=document.getElementById("chart_container_"+this.id);
                 if(!dom)return;
                 try{if(this.echartsInstance){this.echartsInstance.dispose();this.echartsInstance=null;}}catch(e){}
                 if(!data || !data.data || data.data.length===0){$(dom).html("<div class=\"ai-no-data\">📈 No chart data</div>");return;}
                 var cfg=config?config:{}; if(typeof config==="string"){try{cfg=JSON.parse(config);}catch(e){}}
                 this.echartsInstance=echarts.init(dom);
-                var chartType = cfg.chartType ? cfg.chartType : (cfg.type ? cfg.type : "bar");
-                var type=chartType.toLowerCase().replace(/_/g,"");
+                var chartType = overrideType ? overrideType : (cfg.chartType ? cfg.chartType : (cfg.type ? cfg.type : "bar"));
+                this.currentReportChartType = chartType;
+                var type=chartType.toLowerCase().replace(/_/g,"").replace(/-/g,"");
                 var opt=this.buildChartOption(type,data.data,cfg,"");
                 this.echartsInstance.setOption(opt);
                 window.addEventListener("resize",function(){if(self.echartsInstance)self.echartsInstance.resize();});
             },
 
+            renderReportChartTypes: function(currentType) {
+                var $=apex.jQuery, self=this;
+                var grid = $("#report_chart_types_"+this.id);
+                if(!grid.length) return;
+                var types = [
+                    {id:"column",name:"Column",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"10\" width=\"4\" height=\"10\" rx=\"1\"/><rect x=\"10\" y=\"6\" width=\"4\" height=\"14\" rx=\"1\"/><rect x=\"17\" y=\"3\" width=\"4\" height=\"17\" rx=\"1\"/></svg>"},
+                    {id:"stacked_column",name:"Stacked Column",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"10\" width=\"4\" height=\"10\" rx=\"1\"/><rect x=\"3\" y=\"6\" width=\"4\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"10\" y=\"6\" width=\"4\" height=\"14\" rx=\"1\"/><rect x=\"10\" y=\"2\" width=\"4\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"17\" y=\"8\" width=\"4\" height=\"12\" rx=\"1\"/><rect x=\"17\" y=\"4\" width=\"4\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/></svg>"},
+                    {id:"bar",name:"Bar",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"3\" width=\"10\" height=\"4\" rx=\"1\"/><rect x=\"4\" y=\"10\" width=\"16\" height=\"4\" rx=\"1\"/><rect x=\"4\" y=\"17\" width=\"7\" height=\"4\" rx=\"1\"/></svg>"},
+                    {id:"stacked_bar",name:"Stacked Bar",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"3\" width=\"8\" height=\"4\" rx=\"1\"/><rect x=\"12\" y=\"3\" width=\"4\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"4\" y=\"10\" width=\"12\" height=\"4\" rx=\"1\"/><rect x=\"16\" y=\"10\" width=\"4\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"4\" y=\"17\" width=\"6\" height=\"4\" rx=\"1\"/><rect x=\"10\" y=\"17\" width=\"3\" height=\"4\" rx=\"0\" fill=\"currentColor\" opacity=\"0.3\"/></svg>"},
+                    {id:"line",name:"Line",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"4,18 8,12 12,15 16,8 20,4\"/><circle cx=\"4\" cy=\"18\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"8\" cy=\"12\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"15\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"16\" cy=\"8\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"4\" r=\"1.5\" fill=\"currentColor\"/></svg>"},
+                    {id:"combo",name:"Combo",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"12\" width=\"4\" height=\"8\" rx=\"1\"/><rect x=\"10\" y=\"8\" width=\"4\" height=\"12\" rx=\"1\"/><rect x=\"17\" y=\"10\" width=\"4\" height=\"10\" rx=\"1\"/><polyline points=\"5,8 12,4 19,6\" stroke-dasharray=\"2,1\"/></svg>"},
+                    {id:"area",name:"Area",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4,18 L8,12 L12,14 L16,8 L20,10 L20,20 L4,20 Z\" fill=\"currentColor\" opacity=\"0.2\"/><polyline points=\"4,18 8,12 12,14 16,8 20,10\"/></svg>"},
+                    {id:"stacked_area",name:"Stacked Area",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4,18 L8,14 L12,16 L16,12 L20,14 L20,20 L4,20 Z\" fill=\"currentColor\" opacity=\"0.2\"/><path d=\"M4,14 L8,10 L12,12 L16,8 L20,10 L20,14 L16,12 L12,16 L8,14 L4,18 Z\" fill=\"currentColor\" opacity=\"0.3\"/></svg>"},
+                    {id:"pie",name:"Pie",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12,3 L12,12 L20,8\" fill=\"currentColor\" opacity=\"0.2\"/></svg>"},
+                    {id:"donut",name:"Donut",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><path d=\"M12,3 A9,9 0 0,1 21,12 L17,12 A5,5 0 0,0 12,7 Z\" fill=\"currentColor\" opacity=\"0.2\"/></svg>"},
+                    {id:"scatter",name:"Scatter",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"6\" cy=\"16\" r=\"2\" fill=\"currentColor\"/><circle cx=\"10\" cy=\"10\" r=\"2\" fill=\"currentColor\"/><circle cx=\"14\" cy=\"14\" r=\"2\" fill=\"currentColor\"/><circle cx=\"18\" cy=\"6\" r=\"2\" fill=\"currentColor\"/><circle cx=\"8\" cy=\"6\" r=\"2\" fill=\"currentColor\"/></svg>"},
+                    {id:"bubble",name:"Bubble",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"7\" cy=\"15\" r=\"4\" fill=\"currentColor\" opacity=\"0.2\"/><circle cx=\"15\" cy=\"10\" r=\"5\" fill=\"currentColor\" opacity=\"0.2\"/><circle cx=\"17\" cy=\"17\" r=\"3\" fill=\"currentColor\" opacity=\"0.2\"/></svg>"},
+                    {id:"pareto",name:"Pareto",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"14\" width=\"3\" height=\"6\" rx=\"1\"/><rect x=\"8\" y=\"10\" width=\"3\" height=\"10\" rx=\"1\"/><rect x=\"13\" y=\"12\" width=\"3\" height=\"8\" rx=\"1\"/><rect x=\"18\" y=\"16\" width=\"3\" height=\"4\" rx=\"1\"/><polyline points=\"4,10 9,6 14,4 19,3\"/></svg>"},
+                    {id:"waterfall",name:"Waterfall",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"2\" y=\"14\" width=\"3\" height=\"6\" rx=\"1\"/><rect x=\"7\" y=\"10\" width=\"3\" height=\"4\" rx=\"1\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"12\" y=\"6\" width=\"3\" height=\"4\" rx=\"1\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"17\" y=\"6\" width=\"4\" height=\"14\" rx=\"1\"/><line x1=\"5\" y1=\"14\" x2=\"7\" y2=\"14\" stroke-dasharray=\"2,1\"/><line x1=\"10\" y1=\"10\" x2=\"12\" y2=\"10\" stroke-dasharray=\"2,1\"/></svg>"},
+                    {id:"treemap",name:"Treemap",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"1\"/><rect x=\"15\" y=\"3\" width=\"6\" height=\"6\" rx=\"1\" fill=\"currentColor\" opacity=\"0.2\"/><rect x=\"15\" y=\"11\" width=\"6\" height=\"10\" rx=\"1\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"3\" y=\"15\" width=\"5\" height=\"6\" rx=\"1\" fill=\"currentColor\" opacity=\"0.2\"/><rect x=\"10\" y=\"15\" width=\"3\" height=\"6\" rx=\"1\"/></svg>"},
+                    {id:"heatmap",name:"Heatmap",icon:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.8\"/><rect x=\"10\" y=\"3\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.4\"/><rect x=\"17\" y=\"3\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.2\"/><rect x=\"3\" y=\"10\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.5\"/><rect x=\"10\" y=\"10\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.9\"/><rect x=\"17\" y=\"10\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"3\" y=\"17\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.3\"/><rect x=\"10\" y=\"17\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.6\"/><rect x=\"17\" y=\"17\" width=\"5\" height=\"5\" rx=\"1\" fill=\"currentColor\" opacity=\"0.7\"/></svg>"}
+                ];
+                var currUp = currentType ? currentType.toLowerCase().replace(/-/g,"_") : "column";
+                var h = "";
+                for(var i=0; i<types.length; i++) {
+                    var t = types[i];
+                    var sel = (currUp === t.id) ? " selected" : "";
+                    h += "<div class=\"ai-report-chart-type-item" + sel + "\" data-type=\"" + t.id + "\" onclick=\"window.AID_"+self.id+".selectReportChartType(this)\">";
+                    h += "<div class=\"ai-rct-icon\">" + t.icon + "</div>";
+                    h += "<div class=\"ai-rct-name\">" + t.name + "</div>";
+                    h += "</div>";
+                }
+                grid.html(h);
+            },
+
+            selectReportChartType: function(el) {
+                var $=apex.jQuery, self=this;
+                var newType = el.getAttribute("data-type");
+                if(!newType || !this.currentReportData) return;
+                var grid = document.getElementById("report_chart_types_"+this.id);
+                if(grid) {
+                    var items = grid.querySelectorAll(".ai-report-chart-type-item");
+                    for(var i=0; i<items.length; i++) { items[i].classList.remove("selected"); }
+                }
+                el.classList.add("selected");
+                this.renderChart(this.currentReportData, this.currentReportConfig, newType);
+                this.saveReportChartType(newType);
+            },
+
+            saveReportChartType: function(chartType) {
+                var self = this;
+                if(!this.currentQueryId) return;
+                apex.server.plugin(self.ajax, {
+                    x01: "SAVE_CHART_TYPE",
+                    x02: String(this.currentQueryId),
+                    x03: chartType
+                }, {
+                    success: function(r) { },
+                    error: function() { }
+                });
+            },
+
             processResult: function(d) {
                 var $=apex.jQuery, self=this;
                 if(d.status==="error"){$("#err_"+self.id).text(d.message).show();return;}
-                
+
                 $("#dashboard_view_"+this.id).removeClass("active");
                 $("#report_view_"+this.id).addClass("active");
                 $("#welcome_"+self.id).addClass("hidden");
                 $("#content_wrapper_"+self.id).css("display","flex");
-                
+
                 if(d.query_id) self.currentQueryId=d.query_id;
                 if(d.report_title) $("#report_title_"+self.id).html(d.report_title).fadeIn();
                 $("#interaction_"+self.id).addClass("hidden");
-                
+
                 if(d.data && d.data.length>0)$("#tabs_"+self.id).css("display","flex");
                 if(d.kpis)self.renderKPIs(d.kpis);
                 self.renderDynamicTable(d);
-                self.renderChart(d,d.chart_config);
+
+                // Store data for chart type changes
+                self.currentReportData = d;
+                self.currentReportConfig = d.chart_config;
+                var savedChartType = d.saved_chart_type || (d.chart_config && d.chart_config.chartType) || "column";
+                self.renderChart(d, d.chart_config, savedChartType);
+                self.renderReportChartTypes(savedChartType);
                 
                 if(d.generated_sql){var fmtSql=self.formatSql(d.generated_sql);if(self.cmEditor)self.cmEditor.setValue(fmtSql);else $("#sql_editor_"+self.id).val(fmtSql);}
                 $(".aid-chat-item").removeClass("active");
@@ -3001,7 +3207,22 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
             ELSIF l_act = 'UPDATE_SQL' THEN
                 AI_CORE_PKG.UPDATE_QUERY(TO_NUMBER(l_p1), l_p2, l_out);
                 PRINT_CLOB(NVL(l_out,'{"status":"error","message":"Update failed"}'));
-                
+
+            ELSIF l_act = 'SAVE_CHART_TYPE' THEN
+                -- l_p1 = Query ID, l_p2 = Chart Type (stored in x03 but passed as l_p2 in this context, actually x03)
+                DECLARE
+                    l_query_id NUMBER := TO_NUMBER(l_p1);
+                    l_chart_type VARCHAR2(100) := SUBSTR(l_p2, 1, 100);
+                BEGIN
+                    UPDATE ASKLYZE_AI_QUERY_STORE
+                    SET SAVED_CHART_TYPE = l_chart_type
+                    WHERE ID = l_query_id;
+                    COMMIT;
+                    htp.p('{"status":"success"}');
+                EXCEPTION WHEN OTHERS THEN
+                    htp.p('{"status":"error","message":"' || REPLACE(SQLERRM, '"', '''') || '"}');
+                END;
+
             ELSIF l_act = 'HISTORY' THEN
                 AI_CORE_PKG.GET_CHAT_HISTORY(p_user => NULL, p_limit => 50, p_offset => 0, p_search => l_p1, p_result_json => l_out);
                 PRINT_CLOB(NVL(l_out,'{"status":"error","message":"History empty"}'));
