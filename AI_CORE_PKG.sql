@@ -123,6 +123,15 @@ create or replace PACKAGE AI_CORE_PKG AUTHID CURRENT_USER AS
         p_result_json OUT CLOB
     );
 
+    -- NEW: Update KPI in report
+    PROCEDURE UPDATE_REPORT_KPI(
+        p_query_id    IN NUMBER,
+        p_kpi_index   IN NUMBER,
+        p_new_sql     IN CLOB,
+        p_kpi_title   IN VARCHAR2 DEFAULT NULL,
+        p_result_json OUT CLOB
+    );
+
     -- Data Execution & Rendering
     PROCEDURE EXECUTE_AND_RENDER(
         p_query_id IN NUMBER, 
@@ -1215,6 +1224,7 @@ Return ONLY the JSON object, no explanation.');
         l_result CLOB; l_val VARCHAR2(32767); l_res_val VARCHAR2(32767); l_sql_stmt VARCHAR2(32767);
         l_title VARCHAR2(500); l_icon VARCHAR2(100); l_trend VARCHAR2(50); l_color VARCHAR2(50);
         l_first BOOLEAN := TRUE; l_count NUMBER; l_num_val NUMBER;
+        l_value_sql VARCHAR2(32767); -- Store original SQL for editing
     BEGIN
         IF p_kpi_json IS NULL OR DBMS_LOB.GETLENGTH(p_kpi_json) < 5 THEN RETURN '[]'; END IF;
         DBMS_LOB.CREATETEMPORARY(l_result, TRUE);
@@ -1224,7 +1234,7 @@ Return ONLY the JSON object, no explanation.');
             l_count := APEX_JSON.GET_COUNT(p_path => '.');
         EXCEPTION WHEN OTHERS THEN DBMS_LOB.FREETEMPORARY(l_result); RETURN '[]'; END;
         IF l_count IS NULL OR l_count = 0 THEN DBMS_LOB.FREETEMPORARY(l_result); RETURN '[]'; END IF;
-        
+
         FOR i IN 1 .. l_count LOOP
             BEGIN
                 l_title := APEX_JSON.GET_VARCHAR2(p_path => '[%d].title', p0 => i);
@@ -1232,33 +1242,48 @@ Return ONLY the JSON object, no explanation.');
                 l_icon  := APEX_JSON.GET_VARCHAR2(p_path => '[%d].icon', p0 => i);
                 l_trend := APEX_JSON.GET_VARCHAR2(p_path => '[%d].trend', p0 => i);
                 l_color := APEX_JSON.GET_VARCHAR2(p_path => '[%d].color', p0 => i);
-                l_title := NVL(l_title, 'Metric'); l_icon := NVL(l_icon, 'chart'); 
+                -- Check for value_sql field (for edited KPIs)
+                l_value_sql := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value_sql', p0 => i);
+                l_title := NVL(l_title, 'Metric'); l_icon := NVL(l_icon, 'chart');
                 l_trend := NVL(l_trend, 'neutral'); l_color := NVL(l_color, 'blue');
                 l_res_val := '-';
-                
-                IF l_val IS NOT NULL THEN
+
+                -- If value_sql exists, use it; otherwise use value field as SQL
+                IF l_value_sql IS NOT NULL THEN
+                    l_sql_stmt := CLEAN_AI_SQL(l_value_sql);
+                ELSIF l_val IS NOT NULL THEN
                     l_sql_stmt := CLEAN_AI_SQL(l_val);
-                    IF UPPER(SUBSTR(l_sql_stmt, 1, 6)) = 'SELECT' OR UPPER(SUBSTR(l_sql_stmt, 1, 7)) = '(SELECT' THEN
-                        BEGIN
-                            IF SUBSTR(l_sql_stmt, 1, 1) = '(' AND SUBSTR(l_sql_stmt, -1) = ')' THEN
-                                l_sql_stmt := SUBSTR(l_sql_stmt, 2, LENGTH(l_sql_stmt) - 2);
-                            END IF;
-                            EXECUTE IMMEDIATE l_sql_stmt INTO l_num_val;
-                            IF l_num_val IS NOT NULL THEN
-                                IF l_num_val = TRUNC(l_num_val) THEN l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,999');
-                                ELSE l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,990.00'); END IF;
-                            ELSE l_res_val := '0'; END IF;
-                        EXCEPTION WHEN OTHERS THEN l_res_val := '-'; END;
-                    ELSE l_res_val := l_val; END IF;
+                    l_value_sql := l_sql_stmt; -- Store for output
+                ELSE
+                    l_sql_stmt := NULL;
                 END IF;
-                
+
+                IF l_sql_stmt IS NOT NULL AND (UPPER(SUBSTR(l_sql_stmt, 1, 6)) = 'SELECT' OR UPPER(SUBSTR(l_sql_stmt, 1, 7)) = '(SELECT') THEN
+                    BEGIN
+                        IF SUBSTR(l_sql_stmt, 1, 1) = '(' AND SUBSTR(l_sql_stmt, -1) = ')' THEN
+                            l_sql_stmt := SUBSTR(l_sql_stmt, 2, LENGTH(l_sql_stmt) - 2);
+                        END IF;
+                        EXECUTE IMMEDIATE l_sql_stmt INTO l_num_val;
+                        IF l_num_val IS NOT NULL THEN
+                            IF l_num_val = TRUNC(l_num_val) THEN l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,999');
+                            ELSE l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,990.00'); END IF;
+                        ELSE l_res_val := '0'; END IF;
+                    EXCEPTION WHEN OTHERS THEN l_res_val := '-'; END;
+                ELSIF l_val IS NOT NULL THEN
+                    l_res_val := l_val;
+                END IF;
+
                 IF NOT l_first THEN DBMS_LOB.APPEND(l_result, ','); END IF;
                 l_first := FALSE;
-                DBMS_LOB.APPEND(l_result, '{"title":"' || SAFE_JSON_ESCAPE(l_title) || '","value":"' || SAFE_JSON_ESCAPE(l_res_val) || '","icon":"' || SAFE_JSON_ESCAPE(l_icon) || '","trend":"' || SAFE_JSON_ESCAPE(l_trend) || '","color":"' || SAFE_JSON_ESCAPE(l_color) || '"}');
+                DBMS_LOB.APPEND(l_result, '{"idx":' || (i-1) || ',"title":"' || SAFE_JSON_ESCAPE(l_title) || '","value":"' || SAFE_JSON_ESCAPE(l_res_val) || '","icon":"' || SAFE_JSON_ESCAPE(l_icon) || '","trend":"' || SAFE_JSON_ESCAPE(l_trend) || '","color":"' || SAFE_JSON_ESCAPE(l_color) || '"');
+                IF l_value_sql IS NOT NULL THEN
+                    DBMS_LOB.APPEND(l_result, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_value_sql) || '"');
+                END IF;
+                DBMS_LOB.APPEND(l_result, '}');
             EXCEPTION WHEN OTHERS THEN
                 IF NOT l_first THEN DBMS_LOB.APPEND(l_result, ','); END IF;
                 l_first := FALSE;
-                DBMS_LOB.APPEND(l_result, '{"title":"Error","value":"-","icon":"alert","trend":"neutral","color":"red"}');
+                DBMS_LOB.APPEND(l_result, '{"idx":' || (i-1) || ',"title":"Error","value":"-","icon":"alert","trend":"neutral","color":"red"}');
             END;
         END LOOP;
         DBMS_LOB.APPEND(l_result, ']');
@@ -1748,6 +1773,155 @@ EXCEPTION WHEN OTHERS THEN
     p_result_json := '{"status":"error","message":"' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
 END DELETE_DASHBOARD_CHART;
 
+-- ============================================================
+-- UPDATE_REPORT_KPI - Update KPI SQL in Report Builder
+-- ============================================================
+PROCEDURE UPDATE_REPORT_KPI(
+    p_query_id    IN NUMBER,
+    p_kpi_index   IN NUMBER,
+    p_new_sql     IN CLOB,
+    p_kpi_title   IN VARCHAR2 DEFAULT NULL,
+    p_result_json OUT CLOB
+) IS
+    l_kpis_json CLOB;
+    l_user VARCHAR2(100);
+    l_owner_user VARCHAR2(100);
+    l_sql VARCHAR2(32767);
+    l_num_val NUMBER;
+    l_new_value VARCHAR2(100);
+    l_new_kpis CLOB;
+    l_count NUMBER;
+    l_first BOOLEAN := TRUE;
+    l_title VARCHAR2(500);
+    l_icon VARCHAR2(100);
+    l_trend VARCHAR2(50);
+    l_color VARCHAR2(50);
+    l_old_sql VARCHAR2(32767);
+    l_old_value VARCHAR2(500);
+BEGIN
+    l_user := NVL(V('APP_USER'), USER);
+
+    -- Get existing KPIs JSON
+    BEGIN
+        SELECT APP_USER, KPIS_JSON
+          INTO l_owner_user, l_kpis_json
+          FROM ASKLYZE_AI_QUERY_STORE
+         WHERE ID = p_query_id
+           AND QUERY_TYPE = 'REPORT';
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+        p_result_json := '{"status":"error","message":"Report not found"}';
+        RETURN;
+    END;
+
+    -- Security check
+    IF l_owner_user != l_user THEN
+        p_result_json := '{"status":"error","message":"Access denied"}';
+        RETURN;
+    END IF;
+
+    IF l_kpis_json IS NULL THEN
+        p_result_json := '{"status":"error","message":"No KPIs found in report"}';
+        RETURN;
+    END IF;
+
+    -- Parse to get count
+    BEGIN
+        APEX_JSON.PARSE(l_kpis_json);
+        l_count := APEX_JSON.GET_COUNT(p_path => '.');
+    EXCEPTION WHEN OTHERS THEN
+        p_result_json := '{"status":"error","message":"Invalid KPIs configuration"}';
+        RETURN;
+    END;
+
+    -- Validate KPI index
+    IF p_kpi_index < 0 OR p_kpi_index >= l_count THEN
+        p_result_json := '{"status":"error","message":"Invalid KPI index: ' || p_kpi_index || '"}';
+        RETURN;
+    END IF;
+
+    -- Clean and validate the new SQL
+    l_sql := SUBSTR(CLEAN_AI_SQL(p_new_sql), 1, 32767);
+    IF l_sql IS NULL OR LENGTH(l_sql) = 0 THEN
+        p_result_json := '{"status":"error","message":"SQL cannot be empty"}';
+        RETURN;
+    END IF;
+
+    -- Test the SQL by executing it
+    BEGIN
+        EXECUTE IMMEDIATE l_sql INTO l_num_val;
+        IF l_num_val IS NOT NULL THEN
+            IF l_num_val = TRUNC(l_num_val) THEN
+                l_new_value := TO_CHAR(l_num_val, 'FM999,999,999,999');
+            ELSE
+                l_new_value := TO_CHAR(l_num_val, 'FM999,999,999,990.00');
+            END IF;
+        ELSE
+            l_new_value := '0';
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        p_result_json := '{"status":"error","message":"SQL Error: ' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
+        RETURN;
+    END;
+
+    -- Rebuild KPIs array manually to avoid JSON_OBJECT_T issues
+    DBMS_LOB.CREATETEMPORARY(l_new_kpis, TRUE);
+    DBMS_LOB.APPEND(l_new_kpis, '[');
+
+    FOR i IN 1 .. l_count LOOP
+        l_title := APEX_JSON.GET_VARCHAR2(p_path => '[%d].title', p0 => i);
+        l_icon  := APEX_JSON.GET_VARCHAR2(p_path => '[%d].icon', p0 => i);
+        l_trend := APEX_JSON.GET_VARCHAR2(p_path => '[%d].trend', p0 => i);
+        l_color := APEX_JSON.GET_VARCHAR2(p_path => '[%d].color', p0 => i);
+        l_old_sql := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value_sql', p0 => i);
+        l_old_value := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value', p0 => i);
+
+        IF NOT l_first THEN
+            DBMS_LOB.APPEND(l_new_kpis, ',');
+        END IF;
+        l_first := FALSE;
+
+        DBMS_LOB.APPEND(l_new_kpis, '{');
+
+        -- If this is the KPI being updated
+        IF (i - 1) = p_kpi_index THEN
+            IF p_kpi_title IS NOT NULL THEN
+                DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(p_kpi_title) || '"');
+            ELSE
+                DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(NVL(l_title, 'Metric')) || '"');
+            END IF;
+            DBMS_LOB.APPEND(l_new_kpis, ',"value":"' || SAFE_JSON_ESCAPE(l_new_value) || '"');
+            DBMS_LOB.APPEND(l_new_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
+        ELSE
+            DBMS_LOB.APPEND(l_new_kpis, '"title":"' || SAFE_JSON_ESCAPE(NVL(l_title, 'Metric')) || '"');
+            DBMS_LOB.APPEND(l_new_kpis, ',"value":"' || SAFE_JSON_ESCAPE(NVL(l_old_value, '-')) || '"');
+            IF l_old_sql IS NOT NULL THEN
+                DBMS_LOB.APPEND(l_new_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_old_sql) || '"');
+            END IF;
+        END IF;
+
+        DBMS_LOB.APPEND(l_new_kpis, ',"icon":"' || SAFE_JSON_ESCAPE(NVL(l_icon, 'chart')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, ',"trend":"' || SAFE_JSON_ESCAPE(NVL(l_trend, 'neutral')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, ',"color":"' || SAFE_JSON_ESCAPE(NVL(l_color, 'blue')) || '"');
+        DBMS_LOB.APPEND(l_new_kpis, '}');
+    END LOOP;
+
+    DBMS_LOB.APPEND(l_new_kpis, ']');
+
+    -- Update the database
+    UPDATE ASKLYZE_AI_QUERY_STORE
+       SET KPIS_JSON = l_new_kpis
+     WHERE ID = p_query_id;
+
+    COMMIT;
+
+    DBMS_LOB.FREETEMPORARY(l_new_kpis);
+
+    p_result_json := '{"status":"success","new_value":"' || SAFE_JSON_ESCAPE(l_new_value) || '"}';
+
+EXCEPTION WHEN OTHERS THEN
+    p_result_json := '{"status":"error","message":"' || SAFE_JSON_ESCAPE(SQLERRM) || '"}';
+END UPDATE_REPORT_KPI;
+
     -- ============================================================
     -- Generate Dashboard - WHITELIST-ONLY VERSION
     -- ============================================================
@@ -2007,13 +2181,18 @@ RULES:
                     l_first_kpi := FALSE;
                     
                     DBMS_LOB.APPEND(l_processed_kpis, '{');
-                    DBMS_LOB.APPEND(l_processed_kpis, '"title":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('title')) || '"');
+                    DBMS_LOB.APPEND(l_processed_kpis, '"idx":' || i);
+                    DBMS_LOB.APPEND(l_processed_kpis, ',"title":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('title')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"icon":"' || SAFE_JSON_ESCAPE(NVL(l_kpi_obj.get_string('icon'), 'chart')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"color":"' || SAFE_JSON_ESCAPE(NVL(l_kpi_obj.get_string('color'), 'blue')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"trend":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('trend')) || '"');
                     DBMS_LOB.APPEND(l_processed_kpis, ',"trend_label":"' || SAFE_JSON_ESCAPE(l_kpi_obj.get_string('trend_label')) || '"');
-                    
+
                     l_sql := CLEAN_AI_SQL(l_kpi_obj.get_string('value_sql'));
+                    -- Include the SQL for editing
+                    IF l_sql IS NOT NULL THEN
+                        DBMS_LOB.APPEND(l_processed_kpis, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_sql) || '"');
+                    END IF;
                     IF l_sql IS NOT NULL THEN
                         BEGIN
                             EXECUTE IMMEDIATE l_sql INTO l_num_val;

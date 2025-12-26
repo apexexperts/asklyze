@@ -484,6 +484,34 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-kpi.kpi-teal { border-left: 4px solid #14b8a6; }');
         htp.p('.aid-kpi.kpi-teal .aid-kpi-icon { background: rgba(20,184,166,0.1); color: #14b8a6; }');
 
+        -- KPI Edit Button
+        htp.p('.aid-kpi { position: relative; }');
+        htp.p('.aid-kpi-edit-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: all 0.2s; font-size: 14px; }');
+        htp.p('.aid-kpi:hover .aid-kpi-edit-btn { opacity: 1; }');
+        htp.p('.aid-kpi-edit-btn:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: scale(1.1); }');
+
+        -- KPI Edit Modal
+        htp.p('.ai-kpi-edit-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }');
+        htp.p('.ai-kpi-edit-overlay.active { display: flex; }');
+        htp.p('.ai-kpi-edit-modal { background: #fff; border-radius: 16px; width: 600px; max-width: 90vw; max-height: 80vh; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }');
+        htp.p('.ai-kpi-edit-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.ai-kpi-edit-header h3 { margin: 0; font-size: 18px; font-weight: 700; color: #1f2937; }');
+        htp.p('.ai-kpi-edit-close { width: 32px; height: 32px; border: none; background: #f3f4f6; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }');
+        htp.p('.ai-kpi-edit-close:hover { background: #fee2e2; color: #dc2626; }');
+        htp.p('.ai-kpi-edit-body { padding: 24px; }');
+        htp.p('.ai-kpi-edit-field { margin-bottom: 20px; }');
+        htp.p('.ai-kpi-edit-field label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; }');
+        htp.p('.ai-kpi-edit-field input { width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; box-sizing: border-box; }');
+        htp.p('.ai-kpi-edit-field input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }');
+        htp.p('.ai-kpi-edit-field textarea { width: 100%; height: 150px; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: "Fira Code", Consolas, monospace; resize: vertical; transition: all 0.2s; box-sizing: border-box; }');
+        htp.p('.ai-kpi-edit-field textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }');
+        htp.p('.ai-kpi-edit-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; background: #f9fafb; }');
+        htp.p('.ai-kpi-edit-btn-cancel { padding: 10px 20px; border: 1px solid #e5e7eb; background: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; transition: all 0.2s; }');
+        htp.p('.ai-kpi-edit-btn-cancel:hover { background: #f3f4f6; }');
+        htp.p('.ai-kpi-edit-btn-save { padding: 10px 20px; border: none; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 8px; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; transition: all 0.2s; }');
+        htp.p('.ai-kpi-edit-btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }');
+        htp.p('.ai-kpi-edit-btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }');
+
         -- Table Styles
         htp.p('.ai-table-container { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: visible; flex: 1; min-height: 0; border: 1px solid #e5e7eb; display: flex; flex-direction: column; }');
         htp.p('.ai-table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #fff; border-radius: 12px 12px 0 0; }');
@@ -993,12 +1021,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<div class="ai-pivot-container">');
         htp.p('<div class="ai-pivot-toolbar">');
         htp.p('<div class="ai-pivot-title">🔄 Pivot Analysis</div>');
-        htp.p('<div class="ai-pivot-actions">');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExpandAll()">➕ Expand All</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotCollapseAll()">➖ Collapse All</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExport(''excel'')">📊 Excel</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExport(''pdf'')">📄 PDF</button>');
-        htp.p('</div></div>');
+        htp.p('</div>');
         htp.p('<div id="pivot_container_' || l_id || '" class="ai-pivot-content"></div>');
         htp.p('</div></div>');
         htp.p('<div id="view_chart_' || l_id || '" class="ai-view-content ai-chart-view-wrapper">');
@@ -1015,6 +1038,19 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('</div>');
         htp.p('<textarea id="sql_editor_' || l_id || '"></textarea>');
         htp.p('</div></div></div></div></div>');
+
+        -- KPI Edit Modal
+        htp.p('<div id="kpi_edit_overlay_' || l_id || '" class="ai-kpi-edit-overlay">');
+        htp.p('<div class="ai-kpi-edit-modal">');
+        htp.p('<div class="ai-kpi-edit-header"><h3>Edit KPI</h3><button type="button" class="ai-kpi-edit-close" onclick="window.AID_' || l_id || '.closeKpiEdit()">✕</button></div>');
+        htp.p('<div class="ai-kpi-edit-body">');
+        htp.p('<div class="ai-kpi-edit-field"><label>KPI Title</label><input type="text" id="kpi_edit_title_' || l_id || '" placeholder="Enter KPI title"></div>');
+        htp.p('<div class="ai-kpi-edit-field"><label>SQL Query (must return a single numeric value)</label><textarea id="kpi_edit_sql_' || l_id || '" placeholder="SELECT COUNT(*) FROM table_name"></textarea></div>');
+        htp.p('</div>');
+        htp.p('<div class="ai-kpi-edit-footer">');
+        htp.p('<button type="button" class="ai-kpi-edit-btn-cancel" onclick="window.AID_' || l_id || '.closeKpiEdit()">Cancel</button>');
+        htp.p('<button type="button" id="kpi_edit_save_' || l_id || '" class="ai-kpi-edit-btn-save" onclick="window.AID_' || l_id || '.saveKpiEdit()">💾 Save Changes</button>');
+        htp.p('</div></div></div>');
 
         -- Interaction Container
         htp.p('<div id="interaction_' || l_id || '" class="ai-interaction-container centered">');
@@ -2520,12 +2556,49 @@ initPivot: function(data, config) {
     if(this.pivotInstance) { try { this.pivotInstance.dispose(); } catch(e) {} this.pivotInstance = null; }
     if(!data || data.length === 0) { container.innerHTML = "<div class=\"ai-pivot-empty\">No data</div>"; return; }
     var fields = this.analyzePivotFields(data);
-    var slice = config ? config : this.getDefaultSlice(fields);
+    var slice;
+    if(config && config.rows) {
+        slice = { rows: [], columns: [], measures: [] };
+        if(config.rows) config.rows.forEach(function(r) { slice.rows.push({ uniqueName: r }); });
+        if(config.columns) config.columns.forEach(function(c) { slice.columns.push({ uniqueName: c }); });
+        if(config.measures) config.measures.forEach(function(m) { slice.measures.push({ uniqueName: m, aggregation: "sum" }); });
+    } else {
+        slice = this.getDefaultSlice(fields);
+    }
+    this.hidePivotRecommendation();
+    var title = self.currentReportTitle || "Pivot Analysis";
+    var dateStr = new Date().toLocaleDateString("en-US", {year:"numeric",month:"long",day:"numeric"});
     this.pivotInstance = new WebDataRocks({
         container: container, toolbar: true,
+        beforetoolbarcreated: function(toolbar) {
+            var tabs = toolbar.getTabs();
+            toolbar.getTabs = function() {
+                return tabs.filter(function(tab) {
+                    var id = tab.id;
+                    if(id === "wdr-tab-connect" || id === "wdr-tab-open" || id === "wdr-tab-save" || id === "wdr-tab-fullscreen") return false;
+                    return true;
+                });
+            };
+            var origExportHandler = toolbar.exportHandler;
+            toolbar.exportHandler = function(type) {
+                if(type === "pdf") {
+                    self.pivotInstance.exportTo("pdf", {
+                        filename: title.replace(/[^a-zA-Z0-9]/g,"_") + "_pivot",
+                        pageOrientation: "landscape",
+                        header: "<div style=\"text-align:center;padding:20px 0;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;\"><h1 style=\"margin:0;font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:1px;\">" + title + "</h1><p style=\"margin:8px 0 0;font-size:12px;opacity:0.9;\">Pivot Analysis Report | " + dateStr + "</p></div>",
+                        footer: "<div style=\"text-align:center;padding:15px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;\">Generated by Asklyze AI Report Builder</div>"
+                    });
+                } else {
+                    origExportHandler.call(toolbar, type);
+                }
+            };
+        },
         report: { dataSource: { data: data }, slice: slice,
             options: { grid: { type: "compact", showFilter: true, showTotals: "on", showGrandTotals: "on" }, configuratorButton: true },
             formats: [{ name: "", thousandsSeparator: ",", decimalSeparator: ".", decimalPlaces: 2 }]
+        },
+        global: {
+            localization: "https://cdn.webdatarocks.com/loc/en.json"
         }
     });
     this.pivotInitialized = true;
@@ -2914,15 +2987,19 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
         DBMS_LOB.APPEND(l_js, '
             renderKPIs: function(kpiData) {
                 var $=apex.jQuery, self=this, k=$("#kpis_"+this.id); k.empty();
+                self.kpiData = []; // Store KPI data for editing
                 try {
                     var d=(typeof kpiData==="string")?JSON.parse(kpiData):kpiData;
                     if(Array.isArray(d)) d.forEach(function(i, idx){
-                        var t=i.title?i.title:"Metric"; 
+                        var kpiIdx = (typeof i.idx !== "undefined") ? i.idx : idx;
+                        self.kpiData[kpiIdx] = i; // Store for edit
+                        var t=i.title?i.title:"Metric";
                         var v=i.value?i.value:"-";
                         var colorClass=self.kpiColors[idx % self.kpiColors.length];
                         var iconEmoji=self.getIconEmoji(i.icon);
                         var icon=iconEmoji?iconEmoji:self.kpiIcons[idx % self.kpiIcons.length];
-                        var html="<div class=\"aid-kpi "+colorClass+"\">";
+                        var html="<div class=\"aid-kpi "+colorClass+"\" data-kpi-idx=\""+kpiIdx+"\">";
+                        html+="<button type=\"button\" class=\"aid-kpi-edit-btn\" onclick=\"window.AID_"+self.id+".openKpiEdit("+kpiIdx+"); return false;\" title=\"Edit KPI\">✏️</button>";
                         html+="<div class=\"aid-kpi-header\">"+self.escapeHtml(t)+"</div>";
                         html+="<div class=\"aid-kpi-body\"><div class=\"aid-kpi-content\">";
                         html+="<div class=\"aid-kpi-value\">"+self.escapeHtml(String(v))+"</div>";
@@ -2930,6 +3007,48 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                         k.append(html);
                     });
                 }catch(e){ console.error("KPI render error:", e); }
+            },
+
+            openKpiEdit: function(idx) {
+                var self=this, $=apex.jQuery;
+                var kpi = self.kpiData[idx];
+                if(!kpi) { alert("KPI not found"); return; }
+                self.kpiEditIndex = idx;
+                $("#kpi_edit_title_"+self.id).val(kpi.title || "");
+                var formattedSql = self.formatSql(kpi.value_sql || "");
+                $("#kpi_edit_sql_"+self.id).val(formattedSql);
+                $("#kpi_edit_overlay_"+self.id).addClass("active");
+            },
+
+            closeKpiEdit: function() {
+                var self=this, $=apex.jQuery;
+                self.kpiEditIndex = null;
+                $("#kpi_edit_overlay_"+self.id).removeClass("active");
+            },
+
+            saveKpiEdit: function() {
+                var self=this, $=apex.jQuery;
+                if(self.kpiEditIndex === null || !self.currentQueryId) { alert("No KPI selected"); return; }
+                var title = $("#kpi_edit_title_"+self.id).val().trim();
+                var sql = $("#kpi_edit_sql_"+self.id).val().trim();
+                if(!sql) { alert("SQL query is required"); return; }
+                var saveBtn = $("#kpi_edit_save_"+self.id);
+                saveBtn.prop("disabled", true).html("Saving...");
+                apex.server.plugin(self.ajax, {x01:"UPDATE_KPI", x02:String(self.currentQueryId), x03:String(self.kpiEditIndex), x04:sql, x05:title}, {
+                    success: function(r) {
+                        saveBtn.prop("disabled", false).html("💾 Save Changes");
+                        if(r && r.status === "success") {
+                            self.closeKpiEdit();
+                            self.loadChat(self.currentQueryId, "REPORT");
+                        } else {
+                            alert("Error: " + (r && r.message ? r.message : "Save failed"));
+                        }
+                    },
+                    error: function(x,s,e) {
+                        saveBtn.prop("disabled", false).html("💾 Save Changes");
+                        alert("Error: " + e);
+                    }
+                });
             },
 
             renderDynamicTable: function(data) {
@@ -2945,9 +3064,121 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
             },
 
             filterTable: function(txt) { var f=txt.toUpperCase(),tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; var tr=tbl.getElementsByTagName("tr"); for(var i=1;i<tr.length;i++){var td=tr[i].getElementsByTagName("td"),show=false; for(var j=0;j<td.length;j++){if(td[j]){var t=td[j].textContent; if(t && t.toUpperCase().indexOf(f)>-1){show=true;break;}}}tr[i].style.display=show?"":"none";} },
-            exportXLSX: function() { var tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; var wb=XLSX.utils.table_to_book(tbl,{sheet:"Sheet1"}); XLSX.writeFile(wb,"report_data.xlsx"); },
-            exportHTML: function() { var tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; var html="<html><head><style>table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}th{background:#3b82f6;color:#fff}</style></head><body>"+tbl.outerHTML+"</body></html>"; var blob=new Blob([html],{type:"text/html"}); var link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download="report.html"; document.body.appendChild(link); link.click(); document.body.removeChild(link); },
-            exportPDF: function() { var tbl=document.getElementById("tbl_"+this.id); if(!tbl)return; try{var jsPDFObj=window.jspdf;var doc=new jsPDFObj.jsPDF();doc.autoTable({html:"#tbl_"+this.id,startY:20});doc.save("report.pdf");}catch(e){alert("PDF error");} },
+            exportXLSX: function() {
+                var self=this, tbl=document.getElementById("tbl_"+this.id);
+                if(!tbl)return;
+                var title = self.currentReportTitle || "Report";
+                var wb=XLSX.utils.table_to_book(tbl,{sheet:"Data"});
+                XLSX.writeFile(wb, title.replace(/[^a-zA-Z0-9]/g,"_") + ".xlsx");
+            },
+            exportHTML: function() {
+                var self=this, tbl=document.getElementById("tbl_"+this.id);
+                if(!tbl)return;
+                var title = self.currentReportTitle || "Report";
+                var now = new Date();
+                var dateStr = now.toLocaleDateString("en-US", {year:"numeric",month:"long",day:"numeric"});
+                var timeStr = now.toLocaleTimeString("en-US", {hour:"2-digit",minute:"2-digit"});
+                var rowCount = tbl.querySelectorAll("tbody tr").length;
+                var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>" + self.escapeHtml(title) + "</title>";
+                html += "<style>";
+                html += "* { margin: 0; padding: 0; box-sizing: border-box; }";
+                html += "body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; background: #f8fafc; padding: 40px; color: #1f2937; }";
+                html += ".report-container { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }";
+                html += ".report-header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #fff; padding: 40px; text-align: center; }";
+                html += ".report-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }";
+                html += ".report-header .meta { font-size: 14px; opacity: 0.9; }";
+                html += ".report-header .meta span { margin: 0 15px; }";
+                html += ".report-body { padding: 30px; }";
+                html += "table { width: 100%; border-collapse: collapse; font-size: 14px; }";
+                html += "th { background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #1e40af; font-weight: 700; padding: 14px 16px; text-align: left; border-bottom: 2px solid #3b82f6; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }";
+                html += "td { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }";
+                html += "tr:nth-child(even) td { background: #f8fafc; }";
+                html += "tr:hover td { background: #eff6ff; }";
+                html += ".report-footer { padding: 20px 30px; background: #f8fafc; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #6b7280; }";
+                html += "@media print { body { background: #fff; padding: 0; } .report-container { box-shadow: none; } }";
+                html += "</style></head><body>";
+                html += "<div class=\"report-container\">";
+                html += "<div class=\"report-header\"><h1>" + self.escapeHtml(title) + "</h1>";
+                html += "<div class=\"meta\"><span>📅 " + dateStr + "</span><span>🕐 " + timeStr + "</span><span>📊 " + rowCount + " Records</span></div></div>";
+                html += "<div class=\"report-body\">" + tbl.outerHTML + "</div>";
+                html += "<div class=\"report-footer\">Generated by Asklyze AI Report Builder</div>";
+                html += "</div></body></html>";
+                var blob = new Blob([html], {type: "text/html"});
+                var link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = title.replace(/[^a-zA-Z0-9]/g,"_") + ".html";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+            exportPDF: function() {
+                var self=this, tbl=document.getElementById("tbl_"+this.id);
+                if(!tbl)return;
+                var title = self.currentReportTitle || "Report";
+                var now = new Date();
+                var dateStr = now.toLocaleDateString("en-US", {year:"numeric",month:"long",day:"numeric"});
+                var rowCount = tbl.querySelectorAll("tbody tr").length;
+                try {
+                    var jsPDFObj = window.jspdf;
+                    var doc = new jsPDFObj.jsPDF({orientation: "landscape", unit: "mm", format: "a4"});
+                    var pageWidth = doc.internal.pageSize.getWidth();
+                    var pageHeight = doc.internal.pageSize.getHeight();
+
+                    // Header background
+                    doc.setFillColor(30, 64, 175);
+                    doc.rect(0, 0, pageWidth, 35, "F");
+
+                    // Title
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(20);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(title.toUpperCase(), pageWidth/2, 18, {align: "center"});
+
+                    // Meta info
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(dateStr + "  |  " + rowCount + " Records", pageWidth/2, 28, {align: "center"});
+
+                    // Table
+                    doc.autoTable({
+                        html: "#tbl_" + self.id,
+                        startY: 42,
+                        theme: "grid",
+                        headStyles: {
+                            fillColor: [59, 130, 246],
+                            textColor: [255, 255, 255],
+                            fontStyle: "bold",
+                            fontSize: 9,
+                            halign: "left"
+                        },
+                        bodyStyles: {
+                            fontSize: 8,
+                            textColor: [55, 65, 81]
+                        },
+                        alternateRowStyles: {
+                            fillColor: [248, 250, 252]
+                        },
+                        styles: {
+                            cellPadding: 4,
+                            lineColor: [229, 231, 235],
+                            lineWidth: 0.1
+                        },
+                        margin: {left: 14, right: 14},
+                        didDrawPage: function(data) {
+                            // Footer on each page
+                            doc.setFontSize(8);
+                            doc.setTextColor(107, 114, 128);
+                            doc.text("Generated by Asklyze AI Report Builder", 14, pageHeight - 10);
+                            doc.text("Page " + doc.internal.getNumberOfPages(), pageWidth - 14, pageHeight - 10, {align: "right"});
+                        }
+                    });
+
+                    doc.save(title.replace(/[^a-zA-Z0-9]/g,"_") + ".pdf");
+                } catch(e) {
+                    console.error("PDF export error:", e);
+                    alert("PDF export error: " + e.message);
+                }
+            },
 
             renderChart: function(data,config,overrideType) {
                 var $=apex.jQuery,self=this,dom=document.getElementById("chart_container_"+this.id);
@@ -3036,7 +3267,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 $("#content_wrapper_"+self.id).css("display","flex");
 
                 if(d.query_id) self.currentQueryId=d.query_id;
-                if(d.report_title) $("#report_title_"+self.id).html(d.report_title).fadeIn();
+                if(d.report_title) { self.currentReportTitle = d.report_title; $("#report_title_"+self.id).html(d.report_title).fadeIn(); }
                 $("#interaction_"+self.id).addClass("hidden");
 
                 if(d.data && d.data.length>0)$("#tabs_"+self.id).css("display","flex");
@@ -3218,6 +3449,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
         l_p1 VARCHAR2(4000) := apex_application.g_x02;
         l_p2 CLOB := apex_application.g_x03;
         l_p3 VARCHAR2(4000) := apex_application.g_x04;
+        l_p4 VARCHAR2(4000) := apex_application.g_x05;
         l_current_schema VARCHAR2(128);
         l_out CLOB;
     BEGIN
@@ -3257,6 +3489,21 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     WHERE ID = l_query_id;
                     COMMIT;
                     htp.p('{"status":"success"}');
+                EXCEPTION WHEN OTHERS THEN
+                    htp.p('{"status":"error","message":"' || REPLACE(SQLERRM, '"', '''') || '"}');
+                END;
+
+            ELSIF l_act = 'UPDATE_KPI' THEN
+                -- x02=Query ID, x03=KPI Index, x04=SQL, x05=Title
+                -- l_p1=x02, l_p2=x03(CLOB), l_p3=x04, l_p4=x05
+                DECLARE
+                    l_query_id NUMBER := TO_NUMBER(l_p1);
+                    l_kpi_idx NUMBER := TO_NUMBER(TO_CHAR(l_p2));
+                    l_kpi_sql CLOB := TO_CLOB(l_p3);
+                    l_kpi_title VARCHAR2(200) := l_p4;
+                BEGIN
+                    AI_CORE_PKG.UPDATE_REPORT_KPI(l_query_id, l_kpi_idx, l_kpi_sql, l_kpi_title, l_out);
+                    PRINT_CLOB(NVL(l_out,'{"status":"error","message":"Update failed"}'));
                 EXCEPTION WHEN OTHERS THEN
                     htp.p('{"status":"error","message":"' || REPLACE(SQLERRM, '"', '''') || '"}');
                 END;
