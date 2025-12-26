@@ -3050,7 +3050,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>" + self.escapeHtml(title) + "</title>";
                 html += "<style>";
                 html += "* { margin: 0; padding: 0; box-sizing: border-box; }";
-                html += "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; padding: 40px; color: #1f2937; }";
+                html += "body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; background: #f8fafc; padding: 40px; color: #1f2937; }";
                 html += ".report-container { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }";
                 html += ".report-header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #fff; padding: 40px; text-align: center; }";
                 html += ".report-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }";
