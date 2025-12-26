@@ -68,6 +68,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>');
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>');
         htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>');
+        htp.p('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>');
         htp.p('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@9.4.0/dist/gridstack.min.css">');
         htp.p('<script src="https://cdn.jsdelivr.net/npm/gridstack@9.4.0/dist/gridstack-all.js"></script>');
         htp.p('<link href="https://cdn.webdatarocks.com/latest/webdatarocks.min.css" rel="stylesheet">');
@@ -398,6 +399,11 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-dashboard-view { display: none; flex-direction: column; height: 100%; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); }');
         htp.p('.aid-dashboard-view.active { display: flex; }');
         htp.p('.aid-dash-title { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 20px; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-align: center; box-shadow: 0 4px 15px rgba(30,64,175,0.3); }');
+        htp.p('.aid-dash-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; gap: 10px; }');
+        htp.p('.aid-dash-export-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }');
+        htp.p('.aid-dash-export-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }');
+        htp.p('.aid-dash-export-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }');
+        htp.p('.aid-dash-export-btn svg { width: 18px; height: 18px; }');
         htp.p('.aid-dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }');
         htp.p('@media (max-width: 1200px) { .aid-dash-kpis { grid-template-columns: repeat(2, 1fr); } }');
         htp.p('.aid-dash-kpi { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; }');
@@ -950,6 +956,9 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- Dashboard View Container
         htp.p('<div id="dashboard_view_' || l_id || '" class="aid-dashboard-view">');
         htp.p('<div class="aid-dash-toolbar">');
+        htp.p('<button type="button" id="dash_export_btn_' || l_id || '" class="aid-dash-export-btn" onclick="window.AID_' || l_id || '.exportDashboardPDF()">');
+        htp.p('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>');
+        htp.p('Export PDF</button>');
         htp.p('</div>');
         htp.p('<div id="dash_title_' || l_id || '" class="aid-dash-title"></div>');
         htp.p('<div id="dash_kpis_' || l_id || '" class="aid-dash-kpis"></div>');
@@ -2783,6 +2792,103 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                             alert("Error: " + e);
                         }
                     });
+                });
+            },
+
+            exportDashboardPDF: function() {
+                var self = this, $=apex.jQuery;
+                var dashView = document.getElementById("dashboard_view_" + this.id);
+                if(!dashView) { alert("Dashboard not found"); return; }
+
+                var exportBtn = $("#dash_export_btn_" + this.id);
+                var originalText = exportBtn.html();
+                exportBtn.prop("disabled", true).html("<span>Generating PDF...</span>");
+
+                // Create a wrapper to capture the content without the toolbar
+                var contentWrapper = document.createElement("div");
+                contentWrapper.style.cssText = "position: absolute; left: -9999px; top: 0; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); padding: 20px;";
+
+                // Clone title, KPIs, and charts (excluding toolbar)
+                var title = document.getElementById("dash_title_" + this.id);
+                var kpis = document.getElementById("dash_kpis_" + this.id);
+                var charts = document.getElementById("dash_charts_" + this.id);
+
+                if(title) contentWrapper.appendChild(title.cloneNode(true));
+                if(kpis) contentWrapper.appendChild(kpis.cloneNode(true));
+                if(charts) {
+                    var chartsClone = charts.cloneNode(true);
+                    chartsClone.style.position = "relative";
+                    chartsClone.style.height = "auto";
+                    chartsClone.style.minHeight = "auto";
+
+                    // Re-render charts as canvas images in the clone
+                    var chartItems = chartsClone.querySelectorAll(".aid-dash-chart-body");
+                    Object.keys(self.dashboardCharts).forEach(function(key) {
+                        var chart = self.dashboardCharts[key];
+                        if(chart) {
+                            var dataUrl = chart.getDataURL({type:"png", pixelRatio: 2, backgroundColor: "#fff"});
+                            var origContainer = document.getElementById(key);
+                            if(origContainer) {
+                                var cloneContainer = chartsClone.querySelector("#" + key);
+                                if(cloneContainer) {
+                                    cloneContainer.innerHTML = "<img src=\"" + dataUrl + "\" style=\"width:100%;height:100%;object-fit:contain;\">";
+                                }
+                            }
+                        }
+                    });
+                    contentWrapper.appendChild(chartsClone);
+                }
+
+                document.body.appendChild(contentWrapper);
+
+                // Calculate dimensions for landscape A4
+                var pdfWidth = 297; // A4 landscape width in mm
+                var pdfHeight = 210; // A4 landscape height in mm
+                var margin = 10;
+                var contentWidth = pdfWidth - (margin * 2);
+                var contentHeight = pdfHeight - (margin * 2);
+
+                // Set wrapper width to match aspect ratio
+                contentWrapper.style.width = "1400px";
+
+                html2canvas(contentWrapper, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: "#f0f4f8",
+                    logging: false,
+                    windowWidth: 1400
+                }).then(function(canvas) {
+                    document.body.removeChild(contentWrapper);
+
+                    var imgData = canvas.toDataURL("image/png");
+                    var imgWidth = canvas.width;
+                    var imgHeight = canvas.height;
+
+                    // Calculate scaling to fit on one page
+                    var ratio = Math.min(contentWidth / (imgWidth * 0.264583), contentHeight / (imgHeight * 0.264583));
+                    var scaledWidth = imgWidth * 0.264583 * ratio;
+                    var scaledHeight = imgHeight * 0.264583 * ratio;
+
+                    // Center the content
+                    var xOffset = margin + (contentWidth - scaledWidth) / 2;
+                    var yOffset = margin + (contentHeight - scaledHeight) / 2;
+
+                    var jsPDFObj = window.jspdf;
+                    var pdf = new jsPDFObj.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+                    pdf.addImage(imgData, "PNG", xOffset, yOffset, scaledWidth, scaledHeight);
+
+                    var dashTitle = document.getElementById("dash_title_" + self.id);
+                    var fileName = dashTitle ? dashTitle.textContent.trim().replace(/[^a-zA-Z0-9]/g, "_") + ".pdf" : "dashboard.pdf";
+                    pdf.save(fileName);
+
+                    exportBtn.prop("disabled", false).html(originalText);
+                }).catch(function(err) {
+                    console.error("PDF export error:", err);
+                    document.body.removeChild(contentWrapper);
+                    exportBtn.prop("disabled", false).html(originalText);
+                    alert("Failed to export PDF. Please try again.");
                 });
             },
 ');
