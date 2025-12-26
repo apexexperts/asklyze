@@ -1022,10 +1022,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<div class="ai-pivot-toolbar">');
         htp.p('<div class="ai-pivot-title">🔄 Pivot Analysis</div>');
         htp.p('<div class="ai-pivot-actions">');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExpandAll()">➕ Expand All</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotCollapseAll()">➖ Collapse All</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExport(''excel'')">📊 Excel</button>');
-        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExport(''pdf'')">📄 PDF</button>');
+        htp.p('<button type="button" class="ai-pivot-btn" onclick="window.AID_' || l_id || '.pivotExport(''excel'')">📤 Export</button>');
         htp.p('</div></div>');
         htp.p('<div id="pivot_container_' || l_id || '" class="ai-pivot-content"></div>');
         htp.p('</div></div>');
@@ -2561,9 +2558,28 @@ initPivot: function(data, config) {
     if(this.pivotInstance) { try { this.pivotInstance.dispose(); } catch(e) {} this.pivotInstance = null; }
     if(!data || data.length === 0) { container.innerHTML = "<div class=\"ai-pivot-empty\">No data</div>"; return; }
     var fields = this.analyzePivotFields(data);
-    var slice = config ? config : this.getDefaultSlice(fields);
+    var slice;
+    if(config && config.rows) {
+        slice = { rows: [], columns: [], measures: [] };
+        if(config.rows) config.rows.forEach(function(r) { slice.rows.push({ uniqueName: r }); });
+        if(config.columns) config.columns.forEach(function(c) { slice.columns.push({ uniqueName: c }); });
+        if(config.measures) config.measures.forEach(function(m) { slice.measures.push({ uniqueName: m, aggregation: "sum" }); });
+    } else {
+        slice = this.getDefaultSlice(fields);
+    }
+    this.hidePivotRecommendation();
     this.pivotInstance = new WebDataRocks({
         container: container, toolbar: true,
+        beforetoolbarcreated: function(toolbar) {
+            var tabs = toolbar.getTabs();
+            toolbar.getTabs = function() {
+                return tabs.filter(function(tab) {
+                    var id = tab.id;
+                    if(id === "wdr-tab-connect" || id === "wdr-tab-open" || id === "wdr-tab-save" || id === "wdr-tab-fullscreen") return false;
+                    return true;
+                });
+            };
+        },
         report: { dataSource: { data: data }, slice: slice,
             options: { grid: { type: "compact", showFilter: true, showTotals: "on", showGrandTotals: "on" }, configuratorButton: true },
             formats: [{ name: "", thousandsSeparator: ",", decimalSeparator: ".", decimalPlaces: 2 }]
