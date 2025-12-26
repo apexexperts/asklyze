@@ -2983,7 +2983,8 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 if(!kpi) { alert("KPI not found"); return; }
                 self.kpiEditIndex = idx;
                 $("#kpi_edit_title_"+self.id).val(kpi.title || "");
-                $("#kpi_edit_sql_"+self.id).val(kpi.value_sql || "");
+                var formattedSql = self.formatSql(kpi.value_sql || "");
+                $("#kpi_edit_sql_"+self.id).val(formattedSql);
                 $("#kpi_edit_overlay_"+self.id).addClass("active");
             },
 
