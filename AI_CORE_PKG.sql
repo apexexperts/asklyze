@@ -333,7 +333,7 @@ create or replace PACKAGE BODY AI_CORE_PKG AS
         l_result      CLOB;
         l_first       BOOLEAN := TRUE;
         l_api_key     VARCHAR2(1000);
-        l_model       VARCHAR2(100) := 'openai/gpt-oss-120b';  
+        l_model       VARCHAR2(100) := 'openai/gpt-oss-20b';  
         l_body        CLOB;
     BEGIN
         -- Get schema ID
@@ -1046,7 +1046,7 @@ Return ONLY the JSON object, no explanation.');
         l_resp CLOB; 
         l_txt CLOB; 
         l_key VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1); 
-        l_model VARCHAR2(100) := 'openai/gpt-oss-120b';
+        l_model VARCHAR2(100) := 'openai/gpt-oss-20b';
         l_prompt CLOB;
         l_target VARCHAR2(128) := UPPER(NVL(p_schema_name, NVL(apex_application.g_flow_owner, USER)));
     BEGIN 
@@ -1968,7 +1968,7 @@ END UPDATE_REPORT_KPI;
         END IF;
 
         l_key := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
-        l_model := 'openai/gpt-oss-120b';
+        l_model := 'openai/gpt-oss-20b';
         
         -- GET ONLY WHITELISTED CONTEXT
         l_context := GET_SMART_CONTEXT(
@@ -2383,7 +2383,7 @@ RULES:
         END IF;
 
         l_key := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
-        l_model := 'openai/gpt-oss-120b';
+        l_model := 'openai/gpt-oss-20b';
         
         -- GET ONLY WHITELISTED CONTEXT
         l_context := GET_SMART_CONTEXT(
@@ -3552,7 +3552,7 @@ PROCEDURE EXECUTE_AND_RENDER(p_query_id IN NUMBER, p_result_json OUT CLOB) IS
       p_err_msg    OUT VARCHAR2
   ) IS
     l_key   VARCHAR2(1000) := DBMS_LOB.SUBSTR(GET_CONF('GROQ_API_KEY'), 1000, 1);
-    l_model VARCHAR2(100)  := 'openai/gpt-oss-120b';
+    l_model VARCHAR2(100)  := 'openai/gpt-oss-20b';
     l_body  CLOB;
     l_resp  CLOB;
     l_txt   CLOB;
@@ -4362,5 +4362,3 @@ FUNCTION CATALOG_SEARCH_TABLES(
 
 END AI_CORE_PKG;
 /
-
-
