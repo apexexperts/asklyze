@@ -1224,6 +1224,7 @@ Return ONLY the JSON object, no explanation.');
         l_result CLOB; l_val VARCHAR2(32767); l_res_val VARCHAR2(32767); l_sql_stmt VARCHAR2(32767);
         l_title VARCHAR2(500); l_icon VARCHAR2(100); l_trend VARCHAR2(50); l_color VARCHAR2(50);
         l_first BOOLEAN := TRUE; l_count NUMBER; l_num_val NUMBER;
+        l_value_sql VARCHAR2(32767); -- Store original SQL for editing
     BEGIN
         IF p_kpi_json IS NULL OR DBMS_LOB.GETLENGTH(p_kpi_json) < 5 THEN RETURN '[]'; END IF;
         DBMS_LOB.CREATETEMPORARY(l_result, TRUE);
@@ -1233,7 +1234,7 @@ Return ONLY the JSON object, no explanation.');
             l_count := APEX_JSON.GET_COUNT(p_path => '.');
         EXCEPTION WHEN OTHERS THEN DBMS_LOB.FREETEMPORARY(l_result); RETURN '[]'; END;
         IF l_count IS NULL OR l_count = 0 THEN DBMS_LOB.FREETEMPORARY(l_result); RETURN '[]'; END IF;
-        
+
         FOR i IN 1 .. l_count LOOP
             BEGIN
                 l_title := APEX_JSON.GET_VARCHAR2(p_path => '[%d].title', p0 => i);
@@ -1241,33 +1242,48 @@ Return ONLY the JSON object, no explanation.');
                 l_icon  := APEX_JSON.GET_VARCHAR2(p_path => '[%d].icon', p0 => i);
                 l_trend := APEX_JSON.GET_VARCHAR2(p_path => '[%d].trend', p0 => i);
                 l_color := APEX_JSON.GET_VARCHAR2(p_path => '[%d].color', p0 => i);
-                l_title := NVL(l_title, 'Metric'); l_icon := NVL(l_icon, 'chart'); 
+                -- Check for value_sql field (for edited KPIs)
+                l_value_sql := APEX_JSON.GET_VARCHAR2(p_path => '[%d].value_sql', p0 => i);
+                l_title := NVL(l_title, 'Metric'); l_icon := NVL(l_icon, 'chart');
                 l_trend := NVL(l_trend, 'neutral'); l_color := NVL(l_color, 'blue');
                 l_res_val := '-';
-                
-                IF l_val IS NOT NULL THEN
+
+                -- If value_sql exists, use it; otherwise use value field as SQL
+                IF l_value_sql IS NOT NULL THEN
+                    l_sql_stmt := CLEAN_AI_SQL(l_value_sql);
+                ELSIF l_val IS NOT NULL THEN
                     l_sql_stmt := CLEAN_AI_SQL(l_val);
-                    IF UPPER(SUBSTR(l_sql_stmt, 1, 6)) = 'SELECT' OR UPPER(SUBSTR(l_sql_stmt, 1, 7)) = '(SELECT' THEN
-                        BEGIN
-                            IF SUBSTR(l_sql_stmt, 1, 1) = '(' AND SUBSTR(l_sql_stmt, -1) = ')' THEN
-                                l_sql_stmt := SUBSTR(l_sql_stmt, 2, LENGTH(l_sql_stmt) - 2);
-                            END IF;
-                            EXECUTE IMMEDIATE l_sql_stmt INTO l_num_val;
-                            IF l_num_val IS NOT NULL THEN
-                                IF l_num_val = TRUNC(l_num_val) THEN l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,999');
-                                ELSE l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,990.00'); END IF;
-                            ELSE l_res_val := '0'; END IF;
-                        EXCEPTION WHEN OTHERS THEN l_res_val := '-'; END;
-                    ELSE l_res_val := l_val; END IF;
+                    l_value_sql := l_sql_stmt; -- Store for output
+                ELSE
+                    l_sql_stmt := NULL;
                 END IF;
-                
+
+                IF l_sql_stmt IS NOT NULL AND (UPPER(SUBSTR(l_sql_stmt, 1, 6)) = 'SELECT' OR UPPER(SUBSTR(l_sql_stmt, 1, 7)) = '(SELECT') THEN
+                    BEGIN
+                        IF SUBSTR(l_sql_stmt, 1, 1) = '(' AND SUBSTR(l_sql_stmt, -1) = ')' THEN
+                            l_sql_stmt := SUBSTR(l_sql_stmt, 2, LENGTH(l_sql_stmt) - 2);
+                        END IF;
+                        EXECUTE IMMEDIATE l_sql_stmt INTO l_num_val;
+                        IF l_num_val IS NOT NULL THEN
+                            IF l_num_val = TRUNC(l_num_val) THEN l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,999');
+                            ELSE l_res_val := TO_CHAR(l_num_val, 'FM999,999,999,990.00'); END IF;
+                        ELSE l_res_val := '0'; END IF;
+                    EXCEPTION WHEN OTHERS THEN l_res_val := '-'; END;
+                ELSIF l_val IS NOT NULL THEN
+                    l_res_val := l_val;
+                END IF;
+
                 IF NOT l_first THEN DBMS_LOB.APPEND(l_result, ','); END IF;
                 l_first := FALSE;
-                DBMS_LOB.APPEND(l_result, '{"title":"' || SAFE_JSON_ESCAPE(l_title) || '","value":"' || SAFE_JSON_ESCAPE(l_res_val) || '","icon":"' || SAFE_JSON_ESCAPE(l_icon) || '","trend":"' || SAFE_JSON_ESCAPE(l_trend) || '","color":"' || SAFE_JSON_ESCAPE(l_color) || '"}');
+                DBMS_LOB.APPEND(l_result, '{"idx":' || (i-1) || ',"title":"' || SAFE_JSON_ESCAPE(l_title) || '","value":"' || SAFE_JSON_ESCAPE(l_res_val) || '","icon":"' || SAFE_JSON_ESCAPE(l_icon) || '","trend":"' || SAFE_JSON_ESCAPE(l_trend) || '","color":"' || SAFE_JSON_ESCAPE(l_color) || '"');
+                IF l_value_sql IS NOT NULL THEN
+                    DBMS_LOB.APPEND(l_result, ',"value_sql":"' || SAFE_JSON_ESCAPE(l_value_sql) || '"');
+                END IF;
+                DBMS_LOB.APPEND(l_result, '}');
             EXCEPTION WHEN OTHERS THEN
                 IF NOT l_first THEN DBMS_LOB.APPEND(l_result, ','); END IF;
                 l_first := FALSE;
-                DBMS_LOB.APPEND(l_result, '{"title":"Error","value":"-","icon":"alert","trend":"neutral","color":"red"}');
+                DBMS_LOB.APPEND(l_result, '{"idx":' || (i-1) || ',"title":"Error","value":"-","icon":"alert","trend":"neutral","color":"red"}');
             END;
         END LOOP;
         DBMS_LOB.APPEND(l_result, ']');
