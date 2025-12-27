@@ -768,56 +768,72 @@ create or replace PACKAGE BODY AI_UI_PKG AS
 
         -- Chart Edit Modal Styles
         htp.p('.ai-chart-edit-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }');
-        htp.p('.ai-chart-edit-modal { background: #fff; border-radius: 16px; width: 95%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 80px rgba(0,0,0,0.4); animation: slideUp 0.3s ease; }');
-        htp.p('.ai-chart-edit-header { background: linear-gradient(135deg, #3b3f8f 0%, #3b3f8f 100%); padding: 20px 24px; border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: space-between; }');
-        htp.p('.ai-chart-edit-title { color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }');
-        htp.p('.ai-chart-edit-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 18px; transition: all 0.2s; }');
-        htp.p('.ai-chart-edit-close:hover { background: rgba(255,255,255,0.25); }');
-        htp.p('.ai-chart-edit-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }');
+        htp.p('.ai-chart-edit-modal { background: #fff; border-radius: 20px; width: 95%; max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 80px rgba(0,0,0,0.4); animation: slideUp 0.3s ease; overflow: hidden; }');
+        htp.p('.ai-chart-edit-header { background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 50%, #3b5998 100%); padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.ai-chart-edit-title { color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 14px; }');
+        htp.p('.ai-chart-edit-title-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; backdrop-filter: blur(10px); }');
+        htp.p('.ai-chart-edit-close { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 20px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }');
+        htp.p('.ai-chart-edit-close:hover { background: rgba(255,255,255,0.2); }');
+        htp.p('.ai-chart-edit-body { flex: 1; overflow-y: auto; padding: 28px; display: flex; gap: 28px; min-height: 500px; }');
+
+        -- Left Panel (Title + Chart Types)
+        htp.p('.ai-edit-left-panel { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 24px; }');
+
+        -- Right Panel (SQL/Preview Tabs)
+        htp.p('.ai-edit-right-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }');
 
         -- Form Group Styles
-        htp.p('.ai-edit-form-group { display: flex; flex-direction: column; gap: 8px; }');
-        htp.p('.ai-edit-label { font-size: 13px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 6px; }');
-        htp.p('.ai-edit-label-icon { font-size: 16px; }');
-        htp.p('.ai-edit-input { padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; outline: none; transition: all 0.2s; }');
-        htp.p('.ai-edit-input:focus { border-color: #3b3f8f; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }');
+        htp.p('.ai-edit-form-group { display: flex; flex-direction: column; gap: 10px; }');
+        htp.p('.ai-edit-label { font-size: 14px; font-weight: 700; color: #1f2937; }');
+        htp.p('.ai-edit-input { padding: 14px 18px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 15px; outline: none; transition: all 0.2s; background: #fff; }');
+        htp.p('.ai-edit-input:focus { border-color: #3b5998; box-shadow: 0 0 0 4px rgba(59,89,152,0.1); }');
 
-        -- Chart Type Selector
-        htp.p('.ai-chart-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 280px; overflow-y: auto; padding: 4px; }');
-        htp.p('.ai-chart-type-item { padding: 14px 12px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; background: #fff; }');
-        htp.p('.ai-chart-type-item:hover { border-color: #3b3f8f; background: #f0f9ff; transform: translateY(-2px); }');
-        htp.p('.ai-chart-type-item.selected { border-color: #3b3f8f; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); box-shadow: 0 4px 12px rgba(59,130,246,0.2); }');
-        htp.p('.ai-chart-type-icon { font-size: 28px; margin-bottom: 6px; }');
-        htp.p('.ai-chart-type-name { font-size: 12px; font-weight: 600; color: #374151; }');
-        htp.p('.ai-chart-type-category { font-size: 10px; color: #9ca3af; margin-top: 2px; }');
+        -- Chart Type Grid (4 columns)
+        htp.p('.ai-chart-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 380px; overflow-y: auto; padding: 4px; }');
+        htp.p('.ai-chart-type-item { padding: 16px 8px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; background: #fff; display: flex; flex-direction: column; align-items: center; gap: 8px; }');
+        htp.p('.ai-chart-type-item:hover { border-color: #c7d2fe; background: #f8faff; }');
+        htp.p('.ai-chart-type-item.selected { border-color: #3b5998; background: #f0f4ff; position: relative; }');
+        htp.p('.ai-chart-type-item.selected::after { content: "✓"; position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; background: #3b5998; color: #fff; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }');
+        htp.p('.ai-chart-type-icon { font-size: 26px; color: #6b7280; }');
+        htp.p('.ai-chart-type-item.selected .ai-chart-type-icon { color: #3b5998; }');
+        htp.p('.ai-chart-type-name { font-size: 11px; font-weight: 600; color: #4b5563; line-height: 1.2; }');
+
+        -- Tabs Container
+        htp.p('.ai-edit-tabs { display: flex; border: 1px solid #e5e7eb; border-radius: 25px; overflow: hidden; margin-bottom: 16px; background: #f9fafb; }');
+        htp.p('.ai-edit-tab { flex: 1; padding: 12px 24px; border: none; background: transparent; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; transition: all 0.2s; }');
+        htp.p('.ai-edit-tab.active { background: #fff; color: #1f2937; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 25px; margin: 3px; }');
+        htp.p('.ai-edit-tab:hover:not(.active) { color: #374151; }');
+
+        -- Tab Content
+        htp.p('.ai-edit-tab-content { display: none; flex: 1; flex-direction: column; }');
+        htp.p('.ai-edit-tab-content.active { display: flex; }');
 
         -- SQL Editor Container
-        htp.p('.ai-sql-edit-container { border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #1e293b; }');
-        htp.p('.ai-sql-edit-header { background: #0f172a; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }');
-        htp.p('.ai-sql-edit-label { color: #94a3b8; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }');
-        htp.p('.ai-sql-test-btn { background: #22c55e; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }');
-        htp.p('.ai-sql-test-btn:hover { background: #16a34a; }');
-        htp.p('.ai-sql-edit-area { height: 200px; }');
+        htp.p('.ai-sql-edit-container { flex: 1; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; background: #1e293b; display: flex; flex-direction: column; }');
+        htp.p('.ai-sql-edit-header { background: #0f172a; padding: 12px 16px; display: flex; align-items: center; justify-content: flex-end; border-bottom: 1px solid #334155; }');
+        htp.p('.ai-sql-test-btn { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }');
+        htp.p('.ai-sql-test-btn:hover { background: #f3f4f6; border-color: #d1d5db; }');
+        htp.p('.ai-sql-edit-area { flex: 1; min-height: 300px; }');
         htp.p('.ai-sql-edit-area .CodeMirror { height: 100%; font-size: 13px; }');
 
         -- Preview Area
-        htp.p('.ai-chart-preview { border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; }');
-        htp.p('.ai-chart-preview-header { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }');
-        htp.p('.ai-chart-preview-title { font-size: 13px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 6px; }');
-        htp.p('.ai-chart-preview-body { height: 250px; padding: 10px; }');
-        htp.p('.ai-preview-loading { display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; }');
+        htp.p('.ai-chart-preview-container { flex: 1; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }');
+        htp.p('.ai-chart-preview-body { flex: 1; padding: 16px; min-height: 300px; display: flex; align-items: center; justify-content: center; }');
+        htp.p('.ai-preview-loading { color: #9ca3af; font-size: 14px; }');
         htp.p('.ai-preview-error { padding: 20px; color: #dc2626; background: #fef2f2; border-radius: 8px; text-align: center; }');
 
         -- Footer
-        htp.p('.ai-chart-edit-footer { padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; border-radius: 0 0 16px 16px; }');
-        htp.p('.ai-edit-btn { padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }');
-        htp.p('.ai-edit-btn-cancel { background: #fff; border: 2px solid #e5e7eb; color: #64748b; }');
-        htp.p('.ai-edit-btn-cancel:hover { border-color: #3b3f8f; color: #3b3f8f; }');
-        htp.p('.ai-edit-btn-save { background: linear-gradient(135deg, #3b3f8f 0%, #3b3f8f 100%); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }');
-        htp.p('.ai-edit-btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(59,130,246,0.4); }');
+        htp.p('.ai-chart-edit-footer { padding: 20px 28px; background: #f8fafc; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }');
+        htp.p('.ai-edit-footer-left { display: flex; }');
+        htp.p('.ai-edit-footer-right { display: flex; gap: 12px; }');
+        htp.p('.ai-edit-btn { padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }');
+        htp.p('.ai-edit-btn-cancel { background: #fff; border: 1px solid #e5e7eb; color: #4b5563; }');
+        htp.p('.ai-edit-btn-cancel:hover { border-color: #d1d5db; background: #f9fafb; }');
+        htp.p('.ai-edit-btn-danger { background: #fff; border: 1px solid #fecaca; color: #dc2626; }');
+        htp.p('.ai-edit-btn-danger:hover { background: #fef2f2; border-color: #fca5a5; }');
+        htp.p('.ai-edit-btn-save { background: linear-gradient(135deg, #3b5998 0%, #2d4a6f 100%); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59,89,152,0.3); }');
+        htp.p('.ai-edit-btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,89,152,0.4); }');
         htp.p('.ai-edit-btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }');
-        htp.p('.ai-edit-btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none; color: #fff; box-shadow: 0 4px 12px rgba(239,68,68,0.3); }');
-        htp.p('.ai-edit-btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(239,68,68,0.4); }');
 
         -- Dropdown in chart header
         htp.p('.aid-dash-chart-menu { position: relative; }');
@@ -1164,53 +1180,66 @@ create or replace PACKAGE BODY AI_UI_PKG AS
                 -- Chart Edit Modal
         htp.p('<div id="chart_edit_' || l_id || '" class="ai-chart-edit-overlay">');
         htp.p('<div class="ai-chart-edit-modal">');
+
+        -- Header
         htp.p('<div class="ai-chart-edit-header">');
-        htp.p('<div class="ai-chart-edit-title"><span>✏️</span> Edit Chart</div>');
+        htp.p('<div class="ai-chart-edit-title"><div class="ai-chart-edit-title-icon">📊</div> Edit Chart</div>');
         htp.p('<button type="button" class="ai-chart-edit-close" onclick="window.AID_' || l_id || '.closeChartEdit()">✕</button>');
         htp.p('</div>');
+
+        -- Body with two columns
         htp.p('<div class="ai-chart-edit-body">');
 
-        -- Title Input
+        -- Left Panel: Title + Chart Types
+        htp.p('<div class="ai-edit-left-panel">');
         htp.p('<div class="ai-edit-form-group">');
-        htp.p('<label class="ai-edit-label"><span class="ai-edit-label-icon">📝</span> Chart Title</label>');
+        htp.p('<label class="ai-edit-label">Chart Title</label>');
         htp.p('<input type="text" id="chart_edit_title_' || l_id || '" class="ai-edit-input" placeholder="Enter chart title...">');
         htp.p('</div>');
-
-        -- Chart Type Selector
-        htp.p('<div class="ai-edit-form-group">');
-        htp.p('<label class="ai-edit-label"><span class="ai-edit-label-icon">📊</span> Chart Type</label>');
+        htp.p('<div class="ai-edit-form-group" style="flex:1;">');
+        htp.p('<label class="ai-edit-label">Chart Type</label>');
         htp.p('<div id="chart_type_grid_' || l_id || '" class="ai-chart-type-grid"></div>');
         htp.p('</div>');
+        htp.p('</div>');
 
-        -- SQL Editor
-        htp.p('<div class="ai-edit-form-group">');
-        htp.p('<label class="ai-edit-label"><span class="ai-edit-label-icon">💻</span> SQL Query</label>');
+        -- Right Panel: Tabs (SQL Query / Chart Preview)
+        htp.p('<div class="ai-edit-right-panel">');
+        htp.p('<div class="ai-edit-tabs">');
+        htp.p('<button type="button" class="ai-edit-tab active" onclick="window.AID_' || l_id || '.switchEditTab(''sql'')">SQL Query</button>');
+        htp.p('<button type="button" class="ai-edit-tab" onclick="window.AID_' || l_id || '.switchEditTab(''preview'')">Chart Preview</button>');
+        htp.p('</div>');
+
+        -- SQL Query Tab Content
+        htp.p('<div id="edit_tab_sql_' || l_id || '" class="ai-edit-tab-content active">');
         htp.p('<div class="ai-sql-edit-container">');
         htp.p('<div class="ai-sql-edit-header">');
-        htp.p('<span class="ai-sql-edit-label">🔧 Oracle SQL</span>');
-        htp.p('<button type="button" class="ai-sql-test-btn" onclick="window.AID_' || l_id || '.testChartSql()">▶ Test Query</button>');
+        htp.p('<button type="button" class="ai-sql-test-btn" onclick="window.AID_' || l_id || '.testChartSql()">Test Query</button>');
         htp.p('</div>');
         htp.p('<div class="ai-sql-edit-area"><textarea id="chart_sql_editor_' || l_id || '"></textarea></div>');
-        htp.p('</div></div>');
-
-        -- Preview
-        htp.p('<div class="ai-edit-form-group">');
-        htp.p('<label class="ai-edit-label"><span class="ai-edit-label-icon">👁️</span> Preview</label>');
-        htp.p('<div class="ai-chart-preview">');
-        htp.p('<div class="ai-chart-preview-header">');
-        htp.p('<span class="ai-chart-preview-title">📈 Chart Preview</span>');
         htp.p('</div>');
-        htp.p('<div id="chart_preview_' || l_id || '" class="ai-chart-preview-body">');
-        htp.p('<div class="ai-preview-loading">Click "Test Query" to preview</div>');
-        htp.p('</div></div></div>');
+        htp.p('</div>');
 
+        -- Chart Preview Tab Content
+        htp.p('<div id="edit_tab_preview_' || l_id || '" class="ai-edit-tab-content">');
+        htp.p('<div class="ai-chart-preview-container">');
+        htp.p('<div id="chart_preview_' || l_id || '" class="ai-chart-preview-body">');
+        htp.p('<div class="ai-preview-loading">Click "Test Query" to preview chart</div>');
+        htp.p('</div>');
+        htp.p('</div>');
+        htp.p('</div>');
+
+        htp.p('</div>'); -- End right panel
         htp.p('</div>'); -- End body
 
         -- Footer
         htp.p('<div class="ai-chart-edit-footer">');
+        htp.p('<div class="ai-edit-footer-left">');
         htp.p('<button type="button" class="ai-edit-btn ai-edit-btn-cancel" onclick="window.AID_' || l_id || '.closeChartEdit()">Cancel</button>');
-        htp.p('<button type="button" id="chart_delete_btn_' || l_id || '" class="ai-edit-btn ai-edit-btn-danger" onclick="window.AID_' || l_id || '.deleteChart()">🗑 Delete Chart</button>');
-        htp.p('<button type="button" id="chart_save_btn_' || l_id || '" class="ai-edit-btn ai-edit-btn-save" onclick="window.AID_' || l_id || '.saveChartEdit()">💾 Save Changes</button>');
+        htp.p('</div>');
+        htp.p('<div class="ai-edit-footer-right">');
+        htp.p('<button type="button" id="chart_delete_btn_' || l_id || '" class="ai-edit-btn ai-edit-btn-danger" onclick="window.AID_' || l_id || '.deleteChart()">Delete Chart</button>');
+        htp.p('<button type="button" id="chart_save_btn_' || l_id || '" class="ai-edit-btn ai-edit-btn-save" onclick="window.AID_' || l_id || '.saveChartEdit()">Save Changes</button>');
+        htp.p('</div>');
         htp.p('</div>');
 
         -- Close Chart Edit Modal
@@ -2777,6 +2806,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 $("#chart_edit_title_"+this.id).val(chart.title || "");
                 this.renderChartTypeSelector(chart.chart_type);
                 this.initChartSqlEditor(chart.sql || "");
+                this.switchEditTab("sql");
                 $("#chart_edit_"+this.id).css("display", "flex");
                 var dom = document.getElementById("chart_preview_"+this.id);
                 if(dom) {
@@ -2784,33 +2814,69 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     dom.innerHTML = "";
                     var d = document.createElement("div");
                     d.className = "ai-preview-loading";
-                    d.textContent = "Click Test Query to preview";
+                    d.textContent = "Click Test Query to preview chart";
                     dom.appendChild(d);
+                }
+            },
+
+            switchEditTab: function(tab) {
+                var $=apex.jQuery, self=this;
+                $(".ai-edit-tab").removeClass("active");
+                $(".ai-edit-tab-content").removeClass("active");
+                if(tab === "sql") {
+                    $(".ai-edit-tab").eq(0).addClass("active");
+                    $("#edit_tab_sql_"+this.id).addClass("active");
+                    if(this.chartEditEditor) setTimeout(function(){ self.chartEditEditor.refresh(); }, 50);
+                } else {
+                    $(".ai-edit-tab").eq(1).addClass("active");
+                    $("#edit_tab_preview_"+this.id).addClass("active");
+                    this.updateChartPreview();
                 }
             },
 
             renderChartTypeSelector: function(currentType) {
                 var $=apex.jQuery, self=this;
                 var grid = $("#chart_type_grid_"+this.id);
-                var icons = {"BAR":"📊","BAR_HORIZONTAL":"📊","BAR_STACKED":"📊","LINE":"📈","LINE_SMOOTH":"📈","AREA":"📈","PIE":"🥧","DONUT":"🍩","SCATTER":"⚬","RADAR":"🕸️","FUNNEL":"▼","HEATMAP":"🔥","GAUGE":"⏱️","TREEMAP":"🌳","SANKEY":"🔀"};
-                var types = this.availableChartTypes.length > 0 ? this.availableChartTypes : [
-                    {id:"BAR",name:"Bar Chart",category:"COMPARISON"},{id:"LINE",name:"Line Chart",category:"TREND"},
-                    {id:"PIE",name:"Pie Chart",category:"COMPOSITION"},{id:"DONUT",name:"Donut Chart",category:"COMPOSITION"},
-                    {id:"AREA",name:"Area Chart",category:"TREND"},{id:"BAR_HORIZONTAL",name:"Horizontal Bar",category:"RANKING"}
+                var icons = {
+                    "LINE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 17l6-6 4 4 8-8\"/><circle cx=\"21\" cy=\"7\" r=\"2\"/></svg>",
+                    "AREA":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 20h18V10l-6 4-4-6-8 8v4z\"/></svg>",
+                    "SPARKLINE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 14l4-4 4 4 8-8\"/></svg>",
+                    "BAR":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"10\" y=\"6\" width=\"4\" height=\"14\"/><rect x=\"16\" y=\"2\" width=\"4\" height=\"18\"/></svg>",
+                    "COLUMN":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"10\" y=\"4\" width=\"4\" height=\"16\"/><rect x=\"16\" y=\"8\" width=\"4\" height=\"12\"/></svg>",
+                    "BAR_HORIZONTAL":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"4\" width=\"12\" height=\"4\"/><rect x=\"4\" y=\"10\" width=\"16\" height=\"4\"/><rect x=\"4\" y=\"16\" width=\"8\" height=\"4\"/></svg>",
+                    "GROUPED_BAR":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"8\" width=\"3\" height=\"12\"/><rect x=\"7\" y=\"12\" width=\"3\" height=\"8\"/><rect x=\"14\" y=\"6\" width=\"3\" height=\"14\"/><rect x=\"18\" y=\"10\" width=\"3\" height=\"10\"/></svg>",
+                    "HISTOGRAM":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"2\" y=\"14\" width=\"4\" height=\"6\"/><rect x=\"6\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"10\" y=\"6\" width=\"4\" height=\"14\"/><rect x=\"14\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"18\" y=\"14\" width=\"4\" height=\"6\"/></svg>",
+                    "SCATTER":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"6\" cy=\"14\" r=\"2\"/><circle cx=\"10\" cy=\"8\" r=\"2\"/><circle cx=\"14\" cy=\"16\" r=\"2\"/><circle cx=\"18\" cy=\"10\" r=\"2\"/><circle cx=\"8\" cy=\"18\" r=\"2\"/></svg>",
+                    "PIE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 2a10 10 0 1 0 10 10h-10z\"/><path d=\"M12 2v10h10a10 10 0 0 0-10-10z\"/></svg>",
+                    "DONUT":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"8\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 4v4\"/></svg>",
+                    "BAR_STACKED":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"4\" width=\"6\" height=\"16\"/><line x1=\"4\" y1=\"12\" x2=\"10\" y2=\"12\"/><rect x=\"14\" y=\"8\" width=\"6\" height=\"12\"/><line x1=\"14\" y1=\"14\" x2=\"20\" y2=\"14\"/></svg>",
+                    "LEADERBOARD":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"3\"/><rect x=\"4\" y=\"9\" width=\"12\" height=\"3\"/><rect x=\"4\" y=\"14\" width=\"8\" height=\"3\"/><rect x=\"4\" y=\"19\" width=\"5\" height=\"3\"/></svg>",
+                    "WATERFALL":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"6\" width=\"3\" height=\"8\"/><rect x=\"7\" y=\"4\" width=\"3\" height=\"4\"/><rect x=\"11\" y=\"8\" width=\"3\" height=\"6\"/><rect x=\"15\" y=\"10\" width=\"3\" height=\"4\"/><rect x=\"19\" y=\"6\" width=\"3\" height=\"12\"/></svg>",
+                    "GAUGE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 20a8 8 0 1 1 0-16 8 8 0 0 1 0 16z\"/><path d=\"M12 12l4-4\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/></svg>",
+                    "SINGLE_METRIC":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"6\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M8 12h8\"/><path d=\"M12 10v4\"/></svg>",
+                    "RADAR":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polygon points=\"12,2 22,8 22,16 12,22 2,16 2,8\"/><polygon points=\"12,6 17,9 17,15 12,18 7,15 7,9\"/></svg>",
+                    "FUNNEL":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 4h16l-4 6h-8l-4-6z\"/><path d=\"M8 10h8l-2 4h-4l-2-4z\"/><path d=\"M10 14h4l-1 4h-2l-1-4z\"/></svg>",
+                    "HEATMAP":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"6\" height=\"6\"/><rect x=\"9\" y=\"3\" width=\"6\" height=\"6\"/><rect x=\"15\" y=\"3\" width=\"6\" height=\"6\"/><rect x=\"3\" y=\"9\" width=\"6\" height=\"6\"/><rect x=\"9\" y=\"9\" width=\"6\" height=\"6\"/><rect x=\"15\" y=\"9\" width=\"6\" height=\"6\"/></svg>",
+                    "TREEMAP":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\"/><rect x=\"15\" y=\"3\" width=\"6\" height=\"6\"/><rect x=\"15\" y=\"11\" width=\"6\" height=\"10\"/><rect x=\"3\" y=\"15\" width=\"6\" height=\"6\"/><rect x=\"11\" y=\"15\" width=\"2\" height=\"6\"/></svg>"
+                };
+                var defaultTypes = [
+                    {id:"LINE",name:"Line Chart"},{id:"AREA",name:"Area Chart"},{id:"SPARKLINE",name:"Sparkline"},{id:"BAR",name:"Bar Chart"},
+                    {id:"COLUMN",name:"Column Chart"},{id:"GROUPED_BAR",name:"Grouped Bar"},{id:"HISTOGRAM",name:"Histogram"},{id:"SCATTER",name:"Scatter Plot"},
+                    {id:"PIE",name:"Pie Chart"},{id:"DONUT",name:"Donut Chart"},{id:"BAR_STACKED",name:"Stacked Bar"},{id:"LEADERBOARD",name:"Leaderboard"},
+                    {id:"WATERFALL",name:"Waterfall"},{id:"GAUGE",name:"Gauge"},{id:"SINGLE_METRIC",name:"Single Metric"}
                 ];
+                var types = this.availableChartTypes.length > 0 ? this.availableChartTypes : defaultTypes;
                 var currUp = currentType ? currentType.toUpperCase().replace(/-/g,"_") : "";
                 var h = "";
                 for(var i=0; i<types.length; i++) {
                     var t = types[i];
                     var tid = t.id || t.CHART_TYPE_ID;
                     var tname = t.name || t.DISPLAY_NAME;
-                    var tcat = t.category || t.CHART_CATEGORY || "";
-                    var icon = icons[tid] || "📊";
+                    var icon = icons[tid] || icons["BAR"];
                     var sel = (currUp === tid.toUpperCase()) ? " selected" : "";
-                    h += "<div cla" + "ss=\"ai-chart-type-item" + sel + "\" data-type=\"" + tid + "\" onclick=\"window.AID_"+self.id+".selectChartType(this)\">";
-                    h += "<div cla" + "ss=\"ai-chart-type-icon\">" + icon + "</div>";
-                    h += "<div cla" + "ss=\"ai-chart-type-name\">" + self.escapeHtml(tname) + "</div>";
-                    h += "<div cla" + "ss=\"ai-chart-type-category\">" + self.escapeHtml(tcat) + "</div>";
+                    h += "<div class=\"ai-chart-type-item" + sel + "\" data-type=\"" + tid + "\" onclick=\"window.AID_"+self.id+".selectChartType(this)\">";
+                    h += "<div class=\"ai-chart-type-icon\">" + icon + "</div>";
+                    h += "<div class=\"ai-chart-type-name\">" + self.escapeHtml(tname) + "</div>";
                     h += "</div>";
                 }
                 grid.html(h);
