@@ -511,7 +511,35 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-dash-chart-header { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; cursor: grab; user-select: none; }');
         htp.p('.aid-dash-chart-title { font-size: 14px; font-weight: 700; color: #1f2937; display: flex; align-items: center; gap: 8px; }');
         htp.p('.aid-dash-chart-body { flex: 1; padding: 10px; min-height: 220px; height: 100%; }');
-        
+
+        -- Add Chart Placeholder Styles
+        htp.p('.aid-add-chart-placeholder { background: #f9fafb; border-radius: 12px; border: 2px dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 280px; cursor: pointer; transition: all 0.2s; }');
+        htp.p('.aid-add-chart-placeholder:hover { border-color: #3b5998; background: #f0f4ff; }');
+        htp.p('.aid-add-chart-icon { width: 64px; height: 64px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #6b7280; margin-bottom: 12px; transition: all 0.2s; }');
+        htp.p('.aid-add-chart-placeholder:hover .aid-add-chart-icon { background: #3b5998; color: #fff; }');
+        htp.p('.aid-add-chart-text { font-size: 14px; font-weight: 600; color: #6b7280; }');
+        htp.p('.aid-add-chart-placeholder:hover .aid-add-chart-text { color: #3b5998; }');
+
+        -- Add Chart Modal Styles
+        htp.p('.ai-add-chart-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }');
+        htp.p('.ai-add-chart-modal { background: #fff; border-radius: 20px; width: 95%; max-width: 700px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 80px rgba(0,0,0,0.4); animation: slideUp 0.3s ease; overflow: hidden; }');
+        htp.p('.ai-add-chart-header { background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 50%, #3b5998 100%); padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.ai-add-chart-title { color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 14px; }');
+        htp.p('.ai-add-chart-title-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }');
+        htp.p('.ai-add-chart-close { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 20px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }');
+        htp.p('.ai-add-chart-close:hover { background: rgba(255,255,255,0.2); }');
+        htp.p('.ai-add-chart-body { flex: 1; overflow-y: auto; padding: 28px; display: flex; flex-direction: column; gap: 24px; }');
+        htp.p('.ai-add-chart-question { width: 100%; padding: 16px 18px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; transition: all 0.2s; resize: none; min-height: 100px; font-family: inherit; }');
+        htp.p('.ai-add-chart-question:focus { border-color: #3b5998; box-shadow: 0 0 0 4px rgba(59,89,152,0.1); }');
+        htp.p('.ai-add-chart-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; }');
+        htp.p('.ai-add-chart-footer { padding: 20px 28px; background: #f8fafc; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; }');
+        htp.p('.ai-add-chart-btn { padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }');
+        htp.p('.ai-add-chart-btn-cancel { background: #fff; border: 1px solid #e5e7eb; color: #4b5563; }');
+        htp.p('.ai-add-chart-btn-cancel:hover { background: #f9fafb; }');
+        htp.p('.ai-add-chart-btn-generate { background: linear-gradient(135deg, #3b5998 0%, #2d4a6f 100%); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59,89,152,0.3); }');
+        htp.p('.ai-add-chart-btn-generate:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,89,152,0.4); }');
+        htp.p('.ai-add-chart-btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }');
+
         -- Report View Styles
         htp.p('.aid-report-view { display: none; flex-direction: column; height: 100%; flex: 1; min-height: 0; overflow-y: auto; }');
         htp.p('.aid-report-view.active { display: flex; }');
@@ -1245,6 +1273,28 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- Close Chart Edit Modal
         htp.p('</div></div>');
 
+        -- Add Chart Modal
+        htp.p('<div id="add_chart_' || l_id || '" class="ai-add-chart-overlay">');
+        htp.p('<div class="ai-add-chart-modal">');
+        htp.p('<div class="ai-add-chart-header">');
+        htp.p('<div class="ai-add-chart-title"><div class="ai-add-chart-title-icon">➕</div> Add New Chart</div>');
+        htp.p('<button type="button" class="ai-add-chart-close" onclick="window.AID_' || l_id || '.closeAddChart()">✕</button>');
+        htp.p('</div>');
+        htp.p('<div class="ai-add-chart-body">');
+        htp.p('<div class="ai-edit-form-group">');
+        htp.p('<label class="ai-edit-label">What would you like to visualize?</label>');
+        htp.p('<textarea id="add_chart_question_' || l_id || '" class="ai-add-chart-question" placeholder="e.g., Show monthly sales by region, Display top 10 customers by revenue..."></textarea>');
+        htp.p('</div>');
+        htp.p('<div class="ai-edit-form-group">');
+        htp.p('<label class="ai-edit-label">Chart Type</label>');
+        htp.p('<div id="add_chart_types_' || l_id || '" class="ai-add-chart-types"></div>');
+        htp.p('</div>');
+        htp.p('</div>');
+        htp.p('<div class="ai-add-chart-footer">');
+        htp.p('<button type="button" class="ai-add-chart-btn ai-add-chart-btn-cancel" onclick="window.AID_' || l_id || '.closeAddChart()">Cancel</button>');
+        htp.p('<button type="button" id="add_chart_btn_' || l_id || '" class="ai-add-chart-btn ai-add-chart-btn-generate" onclick="window.AID_' || l_id || '.generateNewChart()">Generate Chart</button>');
+        htp.p('</div>');
+        htp.p('</div></div>');
 
         -- JAVASCRIPT
         DBMS_LOB.CREATETEMPORARY(l_js, TRUE);
@@ -1277,6 +1327,10 @@ create or replace PACKAGE BODY AI_UI_PKG AS
             // Chart Edit Properties
             chartEditIndex: null,
             chartEditData: null,
+
+            // Add Chart Properties
+            addChartGridIndex: null,
+            addChartSelectedType: "BAR",
             chartEditEditor: null,
             chartPreviewInstance: null,
             availableChartTypes: [],
@@ -2969,6 +3023,104 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 this.chartEditIndex = null; this.chartEditData = null; this.isUpdatingPreview = false;
             },
 
+            // Add Chart Functions
+            openAddChart: function(gridIndex) {
+                var $=apex.jQuery, self=this;
+                this.addChartGridIndex = gridIndex;
+                this.addChartSelectedType = "BAR";
+                $("#add_chart_question_"+this.id).val("");
+                this.renderAddChartTypes();
+                $("#add_chart_"+this.id).css("display", "flex");
+            },
+
+            closeAddChart: function() {
+                var $=apex.jQuery;
+                $("#add_chart_"+this.id).hide();
+                this.addChartGridIndex = null;
+            },
+
+            renderAddChartTypes: function() {
+                var $=apex.jQuery, self=this;
+                var container = $("#add_chart_types_"+this.id);
+                var icons = {
+                    "LINE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 17l6-6 4 4 8-8\"/></svg>",
+                    "AREA":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 20h18V10l-6 4-4-6-8 8v4z\"/></svg>",
+                    "BAR":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"10\" y=\"6\" width=\"4\" height=\"14\"/><rect x=\"16\" y=\"2\" width=\"4\" height=\"18\"/></svg>",
+                    "COLUMN":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"4\" y=\"10\" width=\"4\" height=\"10\"/><rect x=\"10\" y=\"4\" width=\"4\" height=\"16\"/><rect x=\"16\" y=\"8\" width=\"4\" height=\"12\"/></svg>",
+                    "PIE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 2a10 10 0 1 0 10 10h-10z\"/><path d=\"M12 2v10h10a10 10 0 0 0-10-10z\"/></svg>",
+                    "DONUT":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"8\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/></svg>",
+                    "SCATTER":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"6\" cy=\"14\" r=\"2\"/><circle cx=\"10\" cy=\"8\" r=\"2\"/><circle cx=\"14\" cy=\"16\" r=\"2\"/><circle cx=\"18\" cy=\"10\" r=\"2\"/></svg>",
+                    "GAUGE":"<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 20a8 8 0 1 1 0-16 8 8 0 0 1 0 16z\"/><path d=\"M12 12l4-4\"/></svg>"
+                };
+                var types = [
+                    {id:"BAR",name:"Bar Chart"},{id:"LINE",name:"Line Chart"},{id:"PIE",name:"Pie Chart"},{id:"DONUT",name:"Donut Chart"},
+                    {id:"AREA",name:"Area Chart"},{id:"COLUMN",name:"Column Chart"},{id:"SCATTER",name:"Scatter Plot"},{id:"GAUGE",name:"Gauge"}
+                ];
+                var h = "";
+                types.forEach(function(t) {
+                    var sel = (self.addChartSelectedType === t.id) ? " selected" : "";
+                    h += "<div class=\"ai-chart-type-item" + sel + "\" data-type=\"" + t.id + "\" onclick=\"window.AID_"+self.id+".selectAddChartType(this)\">";
+                    h += "<div class=\"ai-chart-type-icon\">" + (icons[t.id] || icons["BAR"]) + "</div>";
+                    h += "<div class=\"ai-chart-type-name\">" + t.name + "</div>";
+                    h += "</div>";
+                });
+                container.html(h);
+            },
+
+            selectAddChartType: function(el) {
+                var $=apex.jQuery;
+                var container = document.getElementById("add_chart_types_"+this.id);
+                if(container) {
+                    var items = container.querySelectorAll(".ai-chart-type-item");
+                    for(var i=0; i<items.length; i++) { items[i].classList.remove("selected"); }
+                }
+                el.classList.add("selected");
+                this.addChartSelectedType = el.getAttribute("data-type");
+            },
+
+            generateNewChart: function() {
+                var $=apex.jQuery, self=this;
+                var question = $("#add_chart_question_"+this.id).val().trim();
+                if(!question) { alert("Please enter a question"); return; }
+                if(!this.currentQueryId) { alert("No dashboard loaded"); return; }
+
+                var btn = $("#add_chart_btn_"+this.id);
+                btn.prop("disabled", true).text("Generating...");
+
+                apex.server.plugin(self.ajax, {
+                    x01: "ADD_CHART",
+                    x02: String(this.currentQueryId),
+                    x03: JSON.stringify({
+                        question: question,
+                        chart_type: this.addChartSelectedType,
+                        grid_index: this.addChartGridIndex
+                    })
+                }, {
+                    success: function(r) {
+                        btn.prop("disabled", false).text("Generate Chart");
+                        if(r.status === "success") {
+                            self.closeAddChart();
+                            self.loadChat(self.currentQueryId, "DASHBOARD");
+                        } else {
+                            alert("Error: " + (r.message || "Failed to generate chart"));
+                        }
+                    },
+                    error: function(x,s,e) {
+                        btn.prop("disabled", false).text("Generate Chart");
+                        alert("Error: " + e);
+                    }
+                });
+            },
+
+            buildAddChartPlaceholder: function(idx) {
+                var self = this;
+                var html = "<div class=\"aid-add-chart-placeholder\" onclick=\"window.AID_"+self.id+".openAddChart("+idx+")\">";
+                html += "<div class=\"aid-add-chart-icon\">+</div>";
+                html += "<div class=\"aid-add-chart-text\">Add Chart</div>";
+                html += "</div>";
+                return html;
+            },
+
             saveChartEdit: function() {
                 var $=apex.jQuery, self=this;
                 if(this.chartEditIndex === null || !this.currentQueryId) { alert("No chart selected"); return; }
@@ -3007,20 +3159,47 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     if(deleteBtn.length) deleteBtn.prop("disabled", true).text("Deleting...");
                     apex.server.plugin(self.ajax, {x01:"DELETE_CHART", x02:String(self.currentQueryId), x03:String(targetIdx)}, {
                         success: function(r) {
-                            if(deleteBtn.length) deleteBtn.prop("disabled", false).text("🗑 Delete Chart");
+                            if(deleteBtn.length) deleteBtn.prop("disabled", false).text("Delete Chart");
                             if(r && r.status === "success") {
                                 self.closeChartEdit();
-                                self.loadChat(self.currentQueryId, "DASHBOARD");
+                                // Replace chart with Add Chart placeholder
+                                self.replaceChartWithPlaceholder(targetIdx);
                             } else {
                                 alert("Error: " + (r && r.message ? r.message : "Delete failed"));
                             }
                         },
                         error: function(x,s,e) {
-                            if(deleteBtn.length) deleteBtn.prop("disabled", false).text("🗑 Delete Chart");
+                            if(deleteBtn.length) deleteBtn.prop("disabled", false).text("Delete Chart");
                             alert("Error: " + e);
                         }
                     });
                 });
+            },
+
+            replaceChartWithPlaceholder: function(idx) {
+                var self = this, $=apex.jQuery;
+                var domId = "dashchart_" + idx + "_" + this.id;
+
+                // Dispose the ECharts instance
+                if(this.dashboardCharts[domId]) {
+                    try { this.dashboardCharts[domId].dispose(); } catch(e) {}
+                    delete this.dashboardCharts[domId];
+                }
+
+                // Find the grid-stack-item containing this chart
+                var chartBody = document.getElementById(domId);
+                if(chartBody) {
+                    var chartContainer = chartBody.closest(".grid-stack-item-content");
+                    if(chartContainer) {
+                        // Replace the content with the placeholder
+                        chartContainer.innerHTML = self.buildAddChartPlaceholder(idx);
+                    }
+                }
+
+                // Update the charts array
+                if(this.currentDashboardCharts && this.currentDashboardCharts[idx]) {
+                    this.currentDashboardCharts[idx] = { deleted: true, placeholder: true };
+                }
             },
 
             exportDashboardPDF: function() {
