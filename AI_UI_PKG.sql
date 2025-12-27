@@ -97,29 +97,29 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- Sidebar Styles
         htp.p('.aid-sidebar { width: 320px; min-width: 320px; background: #ffffff; display: flex; flex-direction: column; transition: all 0.3s ease; border-right: 1px solid #e5e7eb; height: 100%; box-shadow: 2px 0 8px rgba(0,0,0,0.04); }');
         htp.p('.aid-sidebar.collapsed { width: 68px; min-width: 68px; }');
-        htp.p('.aid-sidebar-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.aid-sidebar-header { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px; }');
         htp.p('.aid-sidebar-logo { display: flex; align-items: center; }');
-        htp.p('.aid-sidebar-logo img { height: 28px; width: auto; }');
+        htp.p('.aid-sidebar-logo img { height: 22px; width: auto; }');
         htp.p('.aid-header-settings { background: transparent; border: none; color: #6b7280; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }');
         htp.p('.aid-header-settings:hover { background: #f3f4f6; color: #374151; }');
-        htp.p('.aid-new-chat-btn {    
-                             width: 86%;
-                            background: linear-gradient(173deg, #3b3f8f 0%, #3b3f8f 100%);
+        htp.p('.aid-new-chat-btn {
+                            width: calc(100% - 40px);
+                            background: #3b3f8f;
                             color: white;
                             border: none;
-                            border-radius: 6px;
-                            padding: 14px 22px;
+                            border-radius: 25px;
+                            padding: 14px 24px;
                             font-size: 15px;
                             font-weight: 600;
                             cursor: pointer;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            gap: 7px;
+                            gap: 8px;
                             transition: all 0.2s;
-                            box-shadow: 0 10px 12px rgba(79, 70, 229, 0.3);
-                            margin: 0 15px 13px 19px; }');
-        htp.p('.aid-new-chat-btn:hover { background: linear-gradient(f3f4f6, #4338ca 0%, #3b3f8f 100%); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79,70,229,0.4); }');
+                            box-shadow: 0 4px 12px rgba(59, 63, 143, 0.25);
+                            margin: 0 20px 16px 20px; }');
+        htp.p('.aid-new-chat-btn:hover { background: #32367a; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59, 63, 143, 0.35); }');
         htp.p('.aid-search-box { padding: 0 20px 16px; }');
         htp.p('.aid-search-input { 
                             width: 98%;
@@ -169,7 +169,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-clear-btn:hover { background: #fef2f2; border-color: #fca5a5; }');
 
         -- Collapsed Sidebar Styles
-        htp.p('.aid-sidebar.collapsed .aid-sidebar-header { padding: 16px 12px; justify-content: center; }');
+        htp.p('.aid-sidebar.collapsed .aid-sidebar-header { padding: 16px 12px; justify-content: center; border-bottom: 1px solid #e5e7eb; margin-bottom: 12px; }');
         htp.p('.aid-sidebar.collapsed .aid-sidebar-logo { display: none; }');
         htp.p('.aid-sidebar.collapsed .aid-header-settings { display: none; }');
         htp.p('.aid-sidebar.collapsed .aid-new-chat-btn { width: 44px; height: 44px; padding: 0; margin: 0 12px 12px; border-radius: 10px; }');
@@ -194,8 +194,6 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-sidebar.collapsed .aid-settings-btn, .aid-sidebar.collapsed .aid-clear-btn { width: 44px; height: 44px; padding: 0; border-radius: 10px; }');
         htp.p('.aid-sidebar.collapsed .aid-settings-btn .btn-text, .aid-sidebar.collapsed .aid-clear-btn .btn-text { display: none; }');
         htp.p('.aid-sidebar.collapsed .aid-settings-btn .btn-icon, .aid-sidebar.collapsed .aid-clear-btn .btn-icon { font-size: 18px; }');
-        htp.p('.aid-sidebar-toggle-wrapper { padding: 12px 20px 8px; display: flex; justify-content: flex-end; }');
-        htp.p('.aid-sidebar.collapsed .aid-sidebar-toggle-wrapper { padding: 12px; justify-content: center; }');
         htp.p('.aid-sidebar-toggle-btn { background: transparent; border: none; color: #6b7280; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }');
         htp.p('.aid-sidebar-toggle-btn:hover { background: #f3f4f6; color: #374151; }');
         htp.p('.aid-sidebar-toggle-btn svg { width: 20px; height: 20px; transition: transform 0.3s ease; }');
@@ -996,15 +994,12 @@ create or replace PACKAGE BODY AI_UI_PKG AS
 
         -- SIDEBAR
         htp.p('<div id="sidebar_' || l_id || '" class="aid-sidebar">');
-        -- Toggle wrapper at top
-        htp.p('<div class="aid-sidebar-toggle-wrapper">');
+        -- Header with logo and toggle button
+        htp.p('<div class="aid-sidebar-header">');
+        htp.p('<div class="aid-sidebar-logo"><img src="https://i.ibb.co/zHHx1XKt/Asklyze-IN-Line-Cyan.png" alt="Asklyze" /></div>');
         htp.p('<button type="button" class="aid-sidebar-toggle-btn" onclick="window.AID_' || l_id || '.toggleSidebar()" title="Toggle sidebar">');
         htp.p('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>');
         htp.p('</button>');
-        htp.p('</div>');
-        htp.p('<div class="aid-sidebar-header">');
-        htp.p('<div class="aid-sidebar-logo"><img src="https://i.ibb.co/zHHx1XKt/Asklyze-IN-Line-Cyan.png" alt="Asklyze" /></div>');
-       
         htp.p('</div>');
         htp.p('<button type="button" class="aid-new-chat-btn" onclick="window.AID_' || l_id || '.newChat()"><span class="btn-icon">+</span><span class="btn-text">New</span></button>');
         htp.p('<div class="aid-search-box">');
