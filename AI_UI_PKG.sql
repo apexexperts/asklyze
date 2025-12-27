@@ -1202,29 +1202,29 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('</div>');
         htp.p('</div>');
 
-        -- Right Panel: Tabs (SQL Query / Chart Preview)
+        -- Right Panel: Tabs (Chart Preview / SQL Query)
         htp.p('<div class="ai-edit-right-panel">');
         htp.p('<div class="ai-edit-tabs">');
-        htp.p('<button type="button" class="ai-edit-tab active" onclick="window.AID_' || l_id || '.switchEditTab(''sql'')">SQL Query</button>');
-        htp.p('<button type="button" class="ai-edit-tab" onclick="window.AID_' || l_id || '.switchEditTab(''preview'')">Chart Preview</button>');
+        htp.p('<button type="button" class="ai-edit-tab active" onclick="window.AID_' || l_id || '.switchEditTab(''preview'')">Chart Preview</button>');
+        htp.p('<button type="button" class="ai-edit-tab" onclick="window.AID_' || l_id || '.switchEditTab(''sql'')">SQL Query</button>');
+        htp.p('</div>');
+
+        -- Chart Preview Tab Content
+        htp.p('<div id="edit_tab_preview_' || l_id || '" class="ai-edit-tab-content active">');
+        htp.p('<div class="ai-chart-preview-container">');
+        htp.p('<div id="chart_preview_' || l_id || '" class="ai-chart-preview-body">');
+        htp.p('<div class="ai-preview-loading">Select a chart type to preview</div>');
+        htp.p('</div>');
+        htp.p('</div>');
         htp.p('</div>');
 
         -- SQL Query Tab Content
-        htp.p('<div id="edit_tab_sql_' || l_id || '" class="ai-edit-tab-content active">');
+        htp.p('<div id="edit_tab_sql_' || l_id || '" class="ai-edit-tab-content">');
         htp.p('<div class="ai-sql-edit-container">');
         htp.p('<div class="ai-sql-edit-header">');
         htp.p('<button type="button" class="ai-sql-test-btn" onclick="window.AID_' || l_id || '.testChartSql()">Test Query</button>');
         htp.p('</div>');
         htp.p('<div class="ai-sql-edit-area"><textarea id="chart_sql_editor_' || l_id || '"></textarea></div>');
-        htp.p('</div>');
-        htp.p('</div>');
-
-        -- Chart Preview Tab Content
-        htp.p('<div id="edit_tab_preview_' || l_id || '" class="ai-edit-tab-content">');
-        htp.p('<div class="ai-chart-preview-container">');
-        htp.p('<div id="chart_preview_' || l_id || '" class="ai-chart-preview-body">');
-        htp.p('<div class="ai-preview-loading">Click "Test Query" to preview chart</div>');
-        htp.p('</div>');
         htp.p('</div>');
         htp.p('</div>');
 
@@ -2806,7 +2806,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 $("#chart_edit_title_"+this.id).val(chart.title || "");
                 this.renderChartTypeSelector(chart.chart_type);
                 this.initChartSqlEditor(chart.sql || "");
-                this.switchEditTab("sql");
+                this.switchEditTab("preview");
                 $("#chart_edit_"+this.id).css("display", "flex");
                 var dom = document.getElementById("chart_preview_"+this.id);
                 if(dom) {
@@ -2814,7 +2814,7 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     dom.innerHTML = "";
                     var d = document.createElement("div");
                     d.className = "ai-preview-loading";
-                    d.textContent = "Click Test Query to preview chart";
+                    d.textContent = "Select a chart type to preview";
                     dom.appendChild(d);
                 }
             },
@@ -2823,14 +2823,14 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 var $=apex.jQuery, self=this;
                 $(".ai-edit-tab").removeClass("active");
                 $(".ai-edit-tab-content").removeClass("active");
-                if(tab === "sql") {
+                if(tab === "preview") {
                     $(".ai-edit-tab").eq(0).addClass("active");
-                    $("#edit_tab_sql_"+this.id).addClass("active");
-                    if(this.chartEditEditor) setTimeout(function(){ self.chartEditEditor.refresh(); }, 50);
-                } else {
-                    $(".ai-edit-tab").eq(1).addClass("active");
                     $("#edit_tab_preview_"+this.id).addClass("active");
                     this.updateChartPreview();
+                } else {
+                    $(".ai-edit-tab").eq(1).addClass("active");
+                    $("#edit_tab_sql_"+this.id).addClass("active");
+                    if(this.chartEditEditor) setTimeout(function(){ self.chartEditEditor.refresh(); }, 50);
                 }
             },
 
