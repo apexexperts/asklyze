@@ -15,6 +15,7 @@ END AI_UI_PKG;
 /
 
 
+
 create or replace PACKAGE BODY AI_UI_PKG AS
 
     -- Helper to output JavaScript || operator safely
@@ -99,7 +100,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-sidebar.collapsed { width: 68px; min-width: 68px; }');
         htp.p('.aid-sidebar-header { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px; }');
         htp.p('.aid-sidebar-logo { display: flex; align-items: center; }');
-        htp.p('.aid-sidebar-logo img { height: 22px; width: auto; }');
+        htp.p('.aid-sidebar-logo img { height: 34px; width: auto; }');
         htp.p('.aid-header-settings { background: transparent; border: none; color: #6b7280; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }');
         htp.p('.aid-header-settings:hover { background: #f3f4f6; color: #374151; }');
         htp.p('.aid-new-chat-btn {
@@ -147,7 +148,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.aid-chat-item:hover { background: #f3f4f6; }');
         htp.p('.aid-chat-item.active { background: #f5f5f8; }');
         htp.p('.aid-chat-item.favorite .aid-fav-star { color: #f59e0b; }');
-        htp.p('.aid-chat-item.dashboard .aid-chat-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }');
+        htp.p('.aid-chat-item.dashboard .aid-chat-icon { background: #e3e3ef; }');
         htp.p('.aid-chat-icon { width: 40px; height: 40px; background: #f3f4f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; color: #6b7280; }');
         htp.p('.aid-chat-icon.report { color: #3b3f8f; }');
         htp.p('.aid-chat-icon.dashboard { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }');
