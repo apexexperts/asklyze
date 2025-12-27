@@ -2873,7 +2873,10 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     self.updateChartPreview();
                 }, 100);
             },
+');
 
+        -- Part 3.5b: Tab switching and chart type selector
+        DBMS_LOB.APPEND(l_js, '
             switchEditTab: function(tab) {
                 var $=apex.jQuery, self=this;
                 $(".ai-edit-tab").removeClass("active");
@@ -2936,7 +2939,10 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 }
                 grid.html(h);
             },
+');
 
+        -- Part 3.5c: Chart type selection and SQL editor
+        DBMS_LOB.APPEND(l_js, '
             selectChartType: function(el) {
                 var $=apex.jQuery, self=this;
                 if($(el).is(".selected")) return;
@@ -3022,8 +3028,10 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 $("#chart_edit_"+this.id).hide();
                 this.chartEditIndex = null; this.chartEditData = null; this.isUpdatingPreview = false;
             },
+');
 
-            // Add Chart Functions
+        -- Part 3.5d: Add Chart Functions
+        DBMS_LOB.APPEND(l_js, '
             openAddChart: function(gridIndex) {
                 var $=apex.jQuery, self=this;
                 this.addChartGridIndex = gridIndex;
@@ -3111,7 +3119,10 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     }
                 });
             },
+');
 
+        -- Part 3.5e: Chart save, delete and export functions
+        DBMS_LOB.APPEND(l_js, '
             buildAddChartPlaceholder: function(idx) {
                 var self = this;
                 var html = "<div class=\"aid-add-chart-placeholder\" onclick=\"window.AID_"+self.id+".openAddChart("+idx+")\">";
@@ -3201,7 +3212,10 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                     this.currentDashboardCharts[idx] = { deleted: true, placeholder: true };
                 }
             },
+');
 
+        -- Part 3.5f: Export Dashboard PDF
+        DBMS_LOB.APPEND(l_js, '
             exportDashboardPDF: function() {
                 var self = this, $=apex.jQuery;
                 var dashView = document.getElementById("dashboard_view_" + this.id);
