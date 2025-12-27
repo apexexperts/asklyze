@@ -133,8 +133,8 @@ create or replace PACKAGE BODY AI_UI_PKG AS
                             transition: all 0.2s; }');
         htp.p('.aid-search-input::placeholder { color: #9ca3af; }');
         htp.p('.aid-search-input:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }');
-        htp.p('.aid-tabs-container { padding: 0 20px; display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; }');
-        htp.p('.aid-hist-tab { background: transparent; border: none; color: #9ca3af; padding: 12px 16px; font-size: 14px; font-weight: 600; cursor: pointer; position: relative; transition: all 0.2s; }');
+        htp.p('.aid-tabs-container { padding: 0 12px; display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; }');
+        htp.p('.aid-hist-tab { background: transparent; border: none; color: #9ca3af; padding: 10px 8px; font-size: 12px; font-weight: 600; cursor: pointer; position: relative; transition: all 0.2s; flex: 1; text-align: center; white-space: nowrap; }');
         htp.p('.aid-hist-tab:hover { color: #6b7280; }');
         htp.p('.aid-hist-tab.active { color: #3b3f8f; }');
         htp.p('.aid-hist-tab.active::after { content: ""; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: #3b3f8f; border-radius: 2px 2px 0 0; }');
@@ -1006,8 +1006,10 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<input type="text" id="search_history_' || l_id || '" class="aid-search-input" placeholder="Search conversations..." onkeyup="window.AID_' || l_id || '.searchHistory(this.value)">');
         htp.p('</div>');
         htp.p('<div class="aid-tabs-container">');
-        htp.p('<button type="button" id="tab_all_' || l_id || '" class="aid-hist-tab active" onclick="window.AID_' || l_id || '.setHistoryFilter(''all'')"><span class="tab-icon">💬</span><span class="tab-text">All Chats</span></button>');
-        htp.p('<button type="button" id="tab_fav_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''fav'')"><span class="tab-icon">☆</span><span class="tab-text">Favorites ★</span></button>');
+        htp.p('<button type="button" id="tab_all_' || l_id || '" class="aid-hist-tab active" onclick="window.AID_' || l_id || '.setHistoryFilter(''all'')"><span class="tab-icon">💬</span><span class="tab-text">All</span></button>');
+        htp.p('<button type="button" id="tab_reports_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''reports'')"><span class="tab-icon">📋</span><span class="tab-text">Reports</span></button>');
+        htp.p('<button type="button" id="tab_dashboards_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''dashboards'')"><span class="tab-icon">📈</span><span class="tab-text">Dashboards</span></button>');
+        htp.p('<button type="button" id="tab_fav_' || l_id || '" class="aid-hist-tab" onclick="window.AID_' || l_id || '.setHistoryFilter(''fav'')"><span class="tab-icon">⭐</span><span class="tab-text">Favorites</span></button>');
         htp.p('</div>');
         htp.p('<div id="chat_list_' || l_id || '" class="aid-chat-list"><div class="aid-loading-history">Loading...</div></div>');
         htp.p('<div class="aid-sidebar-footer">');
@@ -1773,8 +1775,10 @@ create or replace PACKAGE BODY AI_UI_PKG AS
                 var $=apex.jQuery, self=this, list=$("#chat_list_"+this.id);
                 var fc=this.chatHistory;
                 if(this.historyFilter==="fav") fc=fc.filter(function(c){return c.is_favorite==="Y";});
+                else if(this.historyFilter==="reports") fc=fc.filter(function(c){return !c.query_type || c.query_type==="REPORT";});
+                else if(this.historyFilter==="dashboards") fc=fc.filter(function(c){return c.query_type==="DASHBOARD";});
                 if(!fc || fc.length===0){
-                    var msg=this.historyFilter==="fav"?"No favorites yet":"No conversations yet";
+                    var msg=this.historyFilter==="fav"?"No favorites yet":this.historyFilter==="reports"?"No reports yet":this.historyFilter==="dashboards"?"No dashboards yet":"No conversations yet";
                     list.html("<div class=\"aid-empty-history\"><p>"+msg+"</p></div>");
                     return;
                 }
