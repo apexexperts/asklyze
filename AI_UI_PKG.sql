@@ -3072,9 +3072,9 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 var container = document.getElementById("add_chart_types_"+this.id);
                 if(container) {
                     var items = container.querySelectorAll(".ai-chart-type-item");
-                    for(var i=0; i<items.length; i++) { items[i].classList.remove("selected"); }
+                    for(var i=0; i<items.length; i++) { items[i].className = "ai-chart-type-item"; }
                 }
-                el.classList.add("selected");
+                el.className = "ai-chart-type-item selected";
                 this.addChartSelectedType = el.getAttribute("data-type");
             },
 
