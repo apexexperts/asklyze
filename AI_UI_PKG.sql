@@ -732,7 +732,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('.ai-auto-detect-hint { font-size: 11px; color: #9ca3af; text-align: center; margin-top: 8px; }');
 
         -- Modal & Other
-        htp.p('.ai-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }');
+        htp.p('.ai-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 11000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }');
         htp.p('.ai-modal { background: #fff; padding: 30px; border-radius: 16px; width: 90%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }');
         htp.p('.ai-modal h3 { margin: 0 0 12px 0; color: #1f2937; font-size: 20px; font-weight: 700; }');
         htp.p('.ai-modal p { color: #6b7280; margin-bottom: 28px; font-size: 14px; line-height: 1.6; }');
@@ -2806,17 +2806,18 @@ hidePivotRecommendation: function() { apex.jQuery("#pivot_recommendation_"+this.
                 $("#chart_edit_title_"+this.id).val(chart.title || "");
                 this.renderChartTypeSelector(chart.chart_type);
                 this.initChartSqlEditor(chart.sql || "");
-                this.switchEditTab("preview");
                 $("#chart_edit_"+this.id).css("display", "flex");
-                var dom = document.getElementById("chart_preview_"+this.id);
-                if(dom) {
-                    this.disposePreviewChart();
-                    dom.innerHTML = "";
-                    var d = document.createElement("div");
-                    d.className = "ai-preview-loading";
-                    d.textContent = "Select a chart type to preview";
-                    dom.appendChild(d);
-                }
+
+                // Reset tabs to preview (first tab)
+                $(".ai-edit-tab").removeClass("active");
+                $(".ai-edit-tab-content").removeClass("active");
+                $(".ai-edit-tab").eq(0).addClass("active");
+                $("#edit_tab_preview_"+this.id).addClass("active");
+
+                // Render the chart preview after a short delay to ensure DOM is ready
+                setTimeout(function() {
+                    self.updateChartPreview();
+                }, 100);
             },
 
             switchEditTab: function(tab) {
