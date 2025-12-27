@@ -97,16 +97,9 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         -- Sidebar Styles
         htp.p('.aid-sidebar { width: 320px; min-width: 320px; background: #ffffff; display: flex; flex-direction: column; transition: all 0.3s ease; border-right: 1px solid #e5e7eb; height: 100%; box-shadow: 2px 0 8px rgba(0,0,0,0.04); }');
         htp.p('.aid-sidebar.collapsed { width: 68px; min-width: 68px; }');
-        htp.p('.aid-sidebar-header { padding: 0 20px 16px; display: flex; align-items: center; justify-content: space-between; }');
-        htp.p('.aid-sidebar-logo { display: flex; align-items: center; gap: 2px; }');
-        htp.p('.aid-sidebar-logo span { font-size: 18px; font-weight: 700; letter-spacing: 3px; }');
-        htp.p('.aid-sidebar-logo .logo-a { color: #1e40af; }');
-        htp.p('.aid-sidebar-logo .logo-s { color: #6b7280; }');
-        htp.p('.aid-sidebar-logo .logo-k { color: #1e40af; }');
-        htp.p('.aid-sidebar-logo .logo-l { color: #6b7280; }');
-        htp.p('.aid-sidebar-logo .logo-y { color: #1e40af; }');
-        htp.p('.aid-sidebar-logo .logo-z { color: #6b7280; }');
-        htp.p('.aid-sidebar-logo .logo-e { color: #1e40af; }');
+        htp.p('.aid-sidebar-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }');
+        htp.p('.aid-sidebar-logo { display: flex; align-items: center; }');
+        htp.p('.aid-sidebar-logo img { height: 28px; width: auto; }');
         htp.p('.aid-header-settings { background: transparent; border: none; color: #6b7280; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }');
         htp.p('.aid-header-settings:hover { background: #f3f4f6; color: #374151; }');
         htp.p('.aid-new-chat-btn {    
@@ -1010,7 +1003,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('</button>');
         htp.p('</div>');
         htp.p('<div class="aid-sidebar-header">');
-        htp.p('<div class="aid-sidebar-logo"><span class="logo-a">A</span><span class="logo-s">S</span><span class="logo-k">K</span><span class="logo-l">L</span><span class="logo-y">Y</span><span class="logo-z">Z</span><span class="logo-e">E</span></div>');
+        htp.p('<div class="aid-sidebar-logo"><img src="https://i.ibb.co/zHHx1XKt/Asklyze-IN-Line-Cyan.png" alt="Asklyze" /></div>');
        
         htp.p('</div>');
         htp.p('<button type="button" class="aid-new-chat-btn" onclick="window.AID_' || l_id || '.newChat()"><span class="btn-icon">+</span><span class="btn-text">New</span></button>');
