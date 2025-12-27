@@ -17,6 +17,7 @@ END AI_UI_PKG;
 
 
 
+
 create or replace PACKAGE BODY AI_UI_PKG AS
 
     -- Helper to output JavaScript || operator safely
@@ -998,7 +999,7 @@ create or replace PACKAGE BODY AI_UI_PKG AS
         htp.p('<div id="sidebar_' || l_id || '" class="aid-sidebar">');
         -- Header with logo and toggle button
         htp.p('<div class="aid-sidebar-header">');
-        htp.p('<div class="aid-sidebar-logo"><img src="https://i.ibb.co/zHHx1XKt/Asklyze-IN-Line-Cyan.png" alt="Asklyze" /></div>');
+        htp.p('<div class="aid-sidebar-logo"><img src="https://i.ibb.co/Lzpmw0YZ/Asklyze-IN-Line-Purple.png" alt="Asklyze" /></div>');
         htp.p('<button type="button" class="aid-sidebar-toggle-btn" onclick="window.AID_' || l_id || '.toggleSidebar()" title="Toggle sidebar">');
         htp.p('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>');
         htp.p('</button>');
